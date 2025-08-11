@@ -1,0 +1,105 @@
+name: DVC Management
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'model/*.dvc'
+      - '.dvc/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'model/*.dvc'
+      - '.dvc/**'
+  workflow_dispatch:
+
+jobs:
+  dvc-push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Nécessaire pour DVC
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install DVC
+      run: |
+        pip install dvc
+        dvc --version
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Create S3 bucket if not exists
+      run: |
+        aws s3 mb s3://${{ secrets.DVC_S3_BUCKET }} --region ${{ secrets.AWS_REGION }} || echo "Bucket already exists"
+    
+    - name: Setup DVC remote
+      run: |
+        dvc remote add s3-remote s3://${{ secrets.DVC_S3_BUCKET }}/models --default
+        dvc remote modify s3-remote region ${{ secrets.AWS_REGION }}
+    
+    - name: Push to DVC remote
+      run: |
+        dvc push
+    
+    - name: Commit DVC cache
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .dvc/cache
+        git commit -m "Update DVC cache" || echo "No changes to commit"
+        git push
+
+  dvc-pull:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install DVC
+      run: |
+        pip install dvc
+        dvc --version
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Create S3 bucket if not exists
+      run: |
+        aws s3 mb s3://${{ secrets.DVC_S3_BUCKET }} --region ${{ secrets.AWS_REGION }} || echo "Bucket already exists"
+    
+    - name: Setup DVC remote
+      run: |
+        dvc remote add s3-remote s3://${{ secrets.DVC_S3_BUCKET }}/models --default
+        dvc remote modify s3-remote region ${{ secrets.AWS_REGION }}
+    
+    - name: Pull from DVC remote
+      run: |
+        dvc pull
+    
+    - name: Verify model integrity
+      run: |
+        python -c "import tensorflow as tf; tf.keras.models.load_model('model/unet_best.keras', compile=False); print('✅ Model loaded successfully')"

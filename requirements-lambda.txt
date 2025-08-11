@@ -1,0 +1,26 @@
+# Minimal Lambda requirements - only essential packages
+fastapi==0.104.1
+mangum==0.17.0
+pydantic==2.5.0
+pydantic_core==2.14.1
+starlette==0.27.0
+uvicorn==0.24.0
+
+# ML packages (pre-built wheels only)
+transformers==4.35.0
+tokenizers==0.14.1
+torch==2.1.0
+tensorflow==2.16.1
+numpy==1.26.4
+scikit-learn==1.7.0
+
+# AWS packages
+boto3==1.38.27
+
+# HTTP packages
+requests==2.32.4
+urllib3==2.5.0
+
+# Utility packages
+python-dotenv==1.1.1
+typing_extensions==4.14.1

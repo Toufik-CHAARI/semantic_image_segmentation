@@ -1,0 +1,85 @@
+name: Setup Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      bucket_name:
+        description: 'S3 Bucket name'
+        required: true
+        default: 'semantic-segmentation-models'
+      region:
+        description: 'AWS Region'
+        required: true
+        default: 'eu-west-3'
+
+jobs:
+  setup-s3:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ github.event.inputs.region }}
+    
+    - name: Create S3 bucket
+      run: |
+        echo "Creating S3 bucket: ${{ github.event.inputs.bucket_name }}"
+        aws s3 mb s3://${{ github.event.inputs.bucket_name }} --region ${{ github.event.inputs.region }}
+        echo "✅ Bucket created successfully!"
+    
+    - name: Configure bucket versioning
+      run: |
+        aws s3api put-bucket-versioning \
+          --bucket ${{ github.event.inputs.bucket_name }} \
+          --versioning-configuration Status=Enabled
+    
+    - name: Configure bucket encryption
+      run: |
+        aws s3api put-bucket-encryption \
+          --bucket ${{ github.event.inputs.bucket_name }} \
+          --server-side-encryption-configuration '{
+            "Rules": [
+              {
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                }
+              }
+            ]
+          }'
+    
+    - name: Configure bucket lifecycle
+      run: |
+        aws s3api put-bucket-lifecycle-configuration \
+          --bucket ${{ github.event.inputs.bucket_name }} \
+          --lifecycle-configuration '{
+            "Rules": [
+              {
+                "ID": "DeleteOldVersions",
+                "Status": "Enabled",
+                "Filter": {},
+                "NoncurrentVersionExpiration": {
+                  "NoncurrentDays": 30
+                }
+              }
+            ]
+          }'
+    
+    - name: Test bucket access
+      run: |
+        echo "Testing bucket access..."
+        aws s3 ls s3://${{ github.event.inputs.bucket_name }}/
+        echo "✅ Bucket access confirmed!"
+    
+    - name: Output bucket information
+      run: |
+        echo "🎉 Infrastructure setup complete!"
+        echo "📦 Bucket: s3://${{ github.event.inputs.bucket_name }}"
+        echo "🌍 Region: ${{ github.event.inputs.region }}"
+        echo ""
+        echo "📋 Next steps:"
+        echo "1. Add DVC_S3_BUCKET=${{ github.event.inputs.bucket_name }} to your GitHub secrets"
+        echo "2. Run 'make dvc-setup-s3' locally to configure DVC"
+        echo "3. Push your model with 'make dvc-push'"

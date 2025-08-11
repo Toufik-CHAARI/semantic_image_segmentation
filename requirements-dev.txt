@@ -1,0 +1,25 @@
+# Development dependencies
+# Include all production dependencies plus development tools
+
+# Production dependencies (from requirements.txt)
+-r requirements.txt
+
+# Development and testing tools
+pytest==8.4.1
+pytest-cov==6.2.1
+pytest-mock==3.14.1
+pytest-asyncio==1.1.0
+httpx==0.25.2
+psutil==7.0.0
+
+# Code quality tools
+black==25.1.0
+flake8==7.3.0
+isort==6.0.1
+bandit==1.7.8
+
+# Documentation tools
+pydoc-markdown==4.8.3
+
+# Optional: MLflow for model tracking (if needed)
+# mlflow>=2.8.0

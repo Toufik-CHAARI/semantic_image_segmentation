@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Service principal pour la production
+  sentiment-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - WORKERS=4
+      - LOG_LEVEL=info
+    volumes:
+      - ./models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - semantic-image-segmentation-network
+
+  # Service pour les tests
+  semantic-image-segmentation-api-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./app:/app/app:ro
+    command: ["python", "-m", "pytest", "tests/", "-v", "--cov=app", "--cov-report=html"]
+    networks:
+      - sentiment-network
+
+  # Service pour les tests d'intégration
+  semantic-image-segmentation-api-integration:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    ports:
+      - "8001:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./models:/app/models:ro
+    command: ["python", "-m", "pytest", "tests/integration/", "-v"]
+    networks:
+      - semantic-image-segmentation-network
+
+networks:
+  sentiment-network:
+    driver: bridge 

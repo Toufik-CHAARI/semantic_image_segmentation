@@ -1,0 +1,298 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Set up DVC
+      uses: iterative/setup-dvc@v1
+        
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-3
+        
+    - name: Pull models with DVC
+      run: dvc pull
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+        
+    - name: Run linting
+      run: |
+        pip install flake8 black isort
+        flake8 app/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+        black --check app/ tests/
+        isort --check-only app/ tests/
+        
+    - name: Run tests with coverage
+      run: |
+        python -m pytest tests/ --cov=app --cov-report=xml --cov-report=term-missing
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        
+    - name: Test coverage threshold
+      run: |
+        coverage=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(float(root.attrib['line-rate']) * 100)")
+        if (( $(echo "$coverage < 90" | bc -l) )); then
+          echo "Coverage is $coverage%, which is below the 90% threshold"
+          exit 1
+        fi
+        echo "Coverage is $coverage%, which meets the 90% threshold"
+
+  build-and-test-docker:
+    name: Build and Test Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build Docker image
+      run: |
+        docker build -f Dockerfile.test -t semantic-image-segmentation-api:test .
+        
+    - name: Test Docker image
+      run: |
+        # Start the container
+        docker run -d --name test-container -p 8000:8000 semantic-image-segmentation-api:test
+        
+        # Wait for the application to start
+        sleep 15
+        
+        # Check if container is running
+        docker ps | grep test-container || (echo "Container not running" && docker logs test-container && exit 1)
+        
+        # Test health endpoint
+        curl -f http://localhost:8000/health || (echo "Health check failed" && docker logs test-container && exit 1)
+        
+        # Test info endpoint
+        curl -f http://localhost:8000/info || (echo "Info check failed" && docker logs test-container && exit 1)
+        
+        # Test sentiment endpoint (with mock model)
+        curl -X POST http://localhost:8000/predict-sentiment/ \
+          -H "Content-Type: application/json" \
+          -d '{"text": "test"}' || (echo "Sentiment check failed" && docker logs test-container && exit 1)
+        
+        # Clean up
+        docker stop test-container
+        docker rm test-container
+        
+    - name: Clean up Docker images
+      if: always()
+      run: |
+        docker rmi semantic-image-segmentation-api:test || true
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Bandit security scan
+      run: |
+        pip install bandit
+        bandit -r app/ -f json -o bandit-report.json || true
+        
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-results
+        path: bandit-report.json
+
+  deploy-staging:
+    name: Deploy to Staging (Lambda Docker)
+    runs-on: ubuntu-latest
+    needs: [test, build-and-test-docker, security-scan]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-3
+    - name: Get AWS Account ID
+      id: aws-account
+      run: |
+        echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+    - name: Build Lambda Docker image
+      run: |
+        docker build -f Dockerfile.lambda -t semantic-image-segmentation-api:latest .
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com
+    - name: Create ECR repository (if not exists)
+      run: |
+        aws ecr describe-repositories --repository-names "semantic-image-segmentation-api" --region eu-west-3 || \
+        aws ecr create-repository --repository-name "semantic-image-segmentation-api" --region eu-west-3
+    - name: Tag and push Docker image to ECR
+      run: |
+        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/staging-semantic-image-segmentation-api:latest"
+        docker tag staging-semantic-image-segmentation-api:latest $ECR_URI
+        docker push $ECR_URI
+    - name: Check and fix CloudFormation stack
+      run: |
+        # Check stack status
+        STACK_STATUS=$(aws cloudformation describe-stacks \
+          --stack-name semantic-image-segmentation-lambda-container-staging \
+          --region eu-west-3 \
+          --query 'Stacks[0].StackStatus' \
+          --output text 2>/dev/null || echo "STACK_NOT_FOUND")
+        
+        echo "Current stack status: $STACK_STATUS"
+        
+        # Delete stack if in ROLLBACK_COMPLETE state
+        if [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ]; then
+          echo "Stack is in ROLLBACK_COMPLETE state. Deleting stack..."
+          aws cloudformation delete-stack --stack-name semantic-image-segmentation-lambda-container-staging --region eu-west-3
+          aws cloudformation wait stack-delete-complete --stack-name semantic-image-segmentation-lambda-container-staging --region eu-west-3
+          echo "Stack deleted successfully"
+        fi
+
+    - name: Deploy CloudFormation stack
+      run: |
+        aws cloudformation deploy \
+          --template-file aws/lambda-container-deployment.yml \
+          --stack-name semantic-image-segmentation-lambda-container-staging \
+          --parameter-overrides Environment=staging \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --region eu-west-3
+    - name: Get API Gateway URL
+      id: get-url
+      run: |
+        API_URL=$(aws cloudformation describe-stacks \
+          --stack-name semantic-image-segmentation-lambda-container-staging \
+          --region eu-west-3 \
+          --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+          --output text)
+        echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+    - name: Test deployment
+      run: |
+        sleep 30
+        curl -f "${{ steps.get-url.outputs.api_url }}/health" || echo "Health check failed - Lambda may still be warming up"
+
+  deploy-production:
+    name: Deploy to Production (Lambda Docker)
+    runs-on: ubuntu-latest
+    needs: [test, build-and-test-docker, security-scan]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-3
+    - name: Get AWS Account ID
+      id: aws-account
+      run: |
+        echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+    - name: Build Lambda Docker image
+      run: |
+        docker build -f Dockerfile.lambda -t semantic-image-segmentation-api:latest .
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com
+    - name: Create ECR repository (if not exists)
+      run: |
+        aws ecr describe-repositories --repository-names "semantic-image-segmentation-api" --region eu-west-3 || \
+        aws ecr create-repository --repository-name "semantic-image-segmentation-api" --region eu-west-3
+    - name: Tag and push Docker image to ECR
+      run: |
+        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:latest"
+        docker tag semantic-image-segmentation-api:latest $ECR_URI
+        docker push $ECR_URI
+    - name: Check and fix CloudFormation stack
+      run: |
+        # Check stack status
+        STACK_STATUS=$(aws cloudformation describe-stacks \
+          --stack-name semantic-image-segmentation-lambda-container-mvp \
+          --region eu-west-3 \
+          --query 'Stacks[0].StackStatus' \
+          --output text 2>/dev/null || echo "STACK_NOT_FOUND")
+        
+        echo "Current stack status: $STACK_STATUS"
+        
+        # Delete stack if in ROLLBACK_COMPLETE state
+        if [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ]; then
+          echo "Stack is in ROLLBACK_COMPLETE state. Deleting stack..."
+          aws cloudformation delete-stack --stack-name semantic-image-segmentation-lambda-container-mvp --region eu-west-3
+          aws cloudformation wait stack-delete-complete --stack-name semantic-image-segmentation-lambda-container-mvp --region eu-west-3
+          echo "Stack deleted successfully"
+        fi
+
+    - name: Deploy CloudFormation stack
+      run: |
+        aws cloudformation deploy \
+          --template-file aws/lambda-container-deployment.yml \
+          --stack-name semantic-image-segmentation-lambda-container-mvp \
+          --parameter-overrides Environment=mvp \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --region eu-west-3
+    - name: Get API Gateway URL
+      id: get-url
+      run: |
+        API_URL=$(aws cloudformation describe-stacks \
+          --stack-name semantic-image-segmentation-lambda-container-mvp \
+          --region eu-west-3 \
+          --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+          --output text)
+        echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+    - name: Test deployment
+      run: |
+        sleep 30
+        curl -f "${{ steps.get-url.outputs.api_url }}/health" || echo "Health check failed - Lambda may still be warming up" 
