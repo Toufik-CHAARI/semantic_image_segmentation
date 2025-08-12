@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api import health, segmentation
 from app.config import settings
 
@@ -9,7 +10,7 @@ app = FastAPI(
     description=settings.API_DESCRIPTION,
     version=settings.API_VERSION,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Configuration CORS
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(health.router, tags=["Health & Info"])
 app.include_router(segmentation.router, prefix="/api", tags=["Segmentation"])
 
+
 # Événements de démarrage et arrêt
 @app.on_event("startup")
 async def startup_event():
@@ -33,10 +35,12 @@ async def startup_event():
     print("📊 Modèle U-Net chargé avec succès")
     print("✅ API prête à recevoir des requêtes")
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Événement exécuté à l'arrêt de l'application"""
     print("🛑 Arrêt de l'API de segmentation sémantique...")
+
 
 # Route racine redirige vers la documentation
 @app.get("/")
@@ -47,5 +51,5 @@ async def root():
         "version": "1.0.0",
         "documentation": "/docs",
         "health_check": "/health",
-        "info": "/info"
+        "info": "/info",
     }

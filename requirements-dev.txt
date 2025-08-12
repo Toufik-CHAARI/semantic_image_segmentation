@@ -19,7 +19,7 @@ isort==6.0.1
 bandit==1.7.8
 
 # Documentation tools
-pydoc-markdown==4.8.3
+pydoc-markdown==4.8.2
 
 # DVC with S3 support
 dvc-s3>=3.2.0
