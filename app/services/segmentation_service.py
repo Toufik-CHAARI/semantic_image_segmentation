@@ -2,13 +2,20 @@ import io
 import os
 from typing import Tuple
 
-import boto3
 import cv2
 import numpy as np
 import tensorflow as tf
 from PIL import Image
 
 from app.config import settings
+
+# Import boto3 conditionally for AWS Lambda environment
+try:
+    import boto3
+
+    BOTO3_AVAILABLE = True
+except ImportError:
+    BOTO3_AVAILABLE = False
 
 
 class SegmentationService:
@@ -22,6 +29,11 @@ class SegmentationService:
     def _download_model_from_s3(self):
         """Télécharge le modèle depuis S3 si il n'existe pas localement"""
         if not os.path.exists(settings.MODEL_PATH):
+            if not BOTO3_AVAILABLE:
+                raise ImportError(
+                    "boto3 is not available. Cannot download model from S3."
+                )
+
             try:
                 # Configuration S3
                 s3_client = boto3.client("s3")
