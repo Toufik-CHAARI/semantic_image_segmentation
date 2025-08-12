@@ -24,10 +24,12 @@ class SegmentationService:
         if not os.path.exists(settings.MODEL_PATH):
             try:
                 # Configuration S3
-                s3_client = boto3.client('s3')
-                bucket_name = os.getenv('DVC_S3_BUCKET', 'semantic-segmentation-models-1754924238')
-                model_key = 'models/unet_best.keras'
-                
+                s3_client = boto3.client("s3")
+                bucket_name = os.getenv(
+                    "DVC_S3_BUCKET", "semantic-segmentation-models-1754924238"
+                )
+                model_key = "models/unet_best.keras"
+
                 print(f"Downloading model from s3://{bucket_name}/{model_key}")
                 s3_client.download_file(bucket_name, model_key, settings.MODEL_PATH)
                 print(f"Model downloaded successfully to {settings.MODEL_PATH}")
@@ -42,7 +44,7 @@ class SegmentationService:
             try:
                 # Télécharger le modèle depuis S3 si nécessaire
                 self._download_model_from_s3()
-                
+
                 self._model = tf.keras.models.load_model(
                     settings.MODEL_PATH, compile=False
                 )
