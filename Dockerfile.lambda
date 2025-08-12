@@ -2,13 +2,13 @@
 FROM public.ecr.aws/lambda/python:3.12
 
 # Install system dependencies required for OpenCV
-RUN yum update -y && yum install -y \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    && yum clean all
+RUN microdnf update -y && microdnf install -y \
+    glib2 \
+    libSM \
+    libXext \
+    libXrender \
+    libgomp \
+    && microdnf clean all
 
 # Copy requirements and install dependencies
 COPY requirements-lambda.txt requirements.txt
