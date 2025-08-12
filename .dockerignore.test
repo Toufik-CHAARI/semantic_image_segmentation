@@ -40,7 +40,7 @@ wheels/
 *.egg
 MANIFEST
 
-# Testing (but keep pytest.ini and tests/)
+# Testing
 .pytest_cache/
 .coverage
 htmlcov/
@@ -70,7 +70,7 @@ Thumbs.db
 # Docker
 Dockerfile*
 docker-compose*
-.dockerignore*
+.dockerignore
 
 # AWS
 aws/
