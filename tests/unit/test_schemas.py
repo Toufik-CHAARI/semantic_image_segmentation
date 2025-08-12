@@ -1,12 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.responses import (
-    HealthResponse,
-    InfoResponse,
-    SegmentationResponse,
-    SegmentationStats,
-)
+from app.schemas.responses import (HealthResponse, InfoResponse,
+                                   SegmentationResponse, SegmentationStats)
 
 
 class TestHealthResponse:
