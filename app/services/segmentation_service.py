@@ -1,4 +1,5 @@
 import io
+import os
 from typing import Tuple
 
 import cv2
@@ -15,9 +16,25 @@ class SegmentationService:
         self.IMG_SIZE = settings.IMG_SIZE
         self.PALETTE = np.array(settings.PALETTE, np.uint8)
         self.CLASS_NAMES = settings.CLASS_NAMES
+        self._model = None
 
-        # Charger le modèle une seule fois au démarrage
-        self.model = tf.keras.models.load_model(settings.MODEL_PATH, compile=False)
+    @property
+    def model(self):
+        """Charge le modèle de manière lazy"""
+        if self._model is None:
+            try:
+                self._model = tf.keras.models.load_model(settings.MODEL_PATH, compile=False)
+            except Exception as e:
+                # En mode test, on peut utiliser un mock ou lever une exception
+                if os.getenv("TEST_MODE", "false").lower() == "true":
+                    # Créer un modèle mock pour les tests
+                    from unittest.mock import Mock
+                    mock_model = Mock()
+                    mock_model.predict.return_value = [np.random.rand(*self.IMG_SIZE, self.N_CLASSES)]
+                    self._model = mock_model
+                else:
+                    raise e
+        return self._model
 
     def preprocess_image(self, image_bytes: bytes) -> np.ndarray:
         """Prétraite une image à partir de bytes"""

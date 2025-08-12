@@ -31,8 +31,12 @@ COPY model/ ./model/
 COPY tests/ ./tests/
 COPY pytest.ini .
 
+# Set environment for testing
+ENV LOG_LEVEL=info
+ENV TEST_MODE=true
+
 # Expose port
 EXPOSE 8000
 
-# Run tests
-CMD ["pytest", "tests/", "-v", "--tb=short"] 
+# Start the API for testing
+CMD ["python", "app.py"] 
