@@ -92,7 +92,11 @@ jobs:
       
     - name: Build Docker image
       run: |
+        # Use .dockerignore.test for test build
+        cp .dockerignore.test .dockerignore
         docker build -f Dockerfile.test -t semantic-image-segmentation-api:test .
+        # Restore original .dockerignore
+        git checkout .dockerignore
         
     - name: Test Docker image
       run: |

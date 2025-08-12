@@ -27,8 +27,7 @@ COPY app.py .
 COPY app/ ./app/
 COPY model/ ./model/
 
-# Copy test files (use .dockerignore.test)
-COPY --chown=root:root .dockerignore.test .dockerignore
+# Copy test files
 COPY tests/ ./tests/
 COPY pytest.ini .
 
