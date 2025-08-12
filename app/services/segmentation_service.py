@@ -2,6 +2,7 @@ import io
 import os
 from typing import Tuple
 
+import boto3
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -18,11 +19,30 @@ class SegmentationService:
         self.CLASS_NAMES = settings.CLASS_NAMES
         self._model = None
 
+    def _download_model_from_s3(self):
+        """Télécharge le modèle depuis S3 si il n'existe pas localement"""
+        if not os.path.exists(settings.MODEL_PATH):
+            try:
+                # Configuration S3
+                s3_client = boto3.client('s3')
+                bucket_name = os.getenv('DVC_S3_BUCKET', 'semantic-segmentation-models-1754924238')
+                model_key = 'models/unet_best.keras'
+                
+                print(f"Downloading model from s3://{bucket_name}/{model_key}")
+                s3_client.download_file(bucket_name, model_key, settings.MODEL_PATH)
+                print(f"Model downloaded successfully to {settings.MODEL_PATH}")
+            except Exception as e:
+                print(f"Failed to download model from S3: {e}")
+                raise e
+
     @property
     def model(self):
         """Charge le modèle de manière lazy"""
         if self._model is None:
             try:
+                # Télécharger le modèle depuis S3 si nécessaire
+                self._download_model_from_s3()
+                
                 self._model = tf.keras.models.load_model(
                     settings.MODEL_PATH, compile=False
                 )
