@@ -23,12 +23,9 @@ class TestSettings:
             test_settings = Settings()
 
             assert test_settings.API_TITLE == "Cityscapes Semantic Segmentation API"
-            assert (
-                test_settings.API_DESCRIPTION
-                == (
-                    "API de segmentation sémantique pour les images urbaines "
-                    "utilisant un modèle U-Net"
-                )
+            assert test_settings.API_DESCRIPTION == (
+                "API de segmentation sémantique pour les images urbaines "
+                "utilisant un modèle U-Net"
             )
             assert test_settings.API_VERSION == "1.0.0"
             assert test_settings.MODEL_PATH == "model/unet_best.keras"
