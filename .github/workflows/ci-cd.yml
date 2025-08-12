@@ -288,6 +288,13 @@ jobs:
           --parameter-overrides Environment=production \
           --capabilities CAPABILITY_NAMED_IAM \
           --region eu-west-3 || (echo "CloudFormation deployment failed. Checking stack events..." && aws cloudformation describe-stack-events --stack-name semantic-image-segmentation-lambda-container-mvp --region eu-west-3 --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`]' --output table && exit 1)
+        
+    - name: Force Lambda function update
+      run: |
+        aws lambda update-function-code \
+          --function-name production-semantic-image-segmentation-api \
+          --image-uri 024848440742.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:production \
+          --region eu-west-3
     - name: Get API Gateway URL
       id: get-url
       run: |
