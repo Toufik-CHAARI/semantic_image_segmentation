@@ -16,7 +16,7 @@ Resources:
       FunctionName: !Sub '${Environment}-semantic-image-segmentation-api'
       PackageType: Image
       Code:
-        ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Environment}-semantic-image-segmentation-api:latest'
+        ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/semantic-image-segmentation-api:${Environment}'
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 300
       MemorySize: 4096
@@ -87,7 +87,7 @@ Resources:
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SemanticImageSegmentationFunction.Arn}/invocations'
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SentimentAnalysisFunction.Arn}/invocations'
 
   # API Gateway Root Method
   ApiRootMethod:
@@ -100,13 +100,13 @@ Resources:
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
-        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SemanticImageSegmentationFunction.Arn}/invocations'
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SentimentAnalysisFunction.Arn}/invocations'
 
   # Lambda Permission for API Gateway
   LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref SemanticImageSegmentationFunction
+      FunctionName: !Ref SentimentAnalysisFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
@@ -130,6 +130,6 @@ Outputs:
 
   LambdaFunctionArn:
     Description: Lambda Function ARN
-    Value: !GetAtt SemanticImageSegmentationFunction.Arn
+          Value: !GetAtt SentimentAnalysisFunction.Arn
     Export:
       Name: !Sub '${Environment}-semantic-image-segmentation-api-lambda-arn' 
