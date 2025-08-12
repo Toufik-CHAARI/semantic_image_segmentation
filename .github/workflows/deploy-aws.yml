@@ -141,6 +141,7 @@ jobs:
           --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
           --output text)
         echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+        echo "api_url=$API_URL"
 
     - name: Test deployment
       run: |
