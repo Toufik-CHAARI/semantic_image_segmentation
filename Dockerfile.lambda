@@ -14,11 +14,17 @@ RUN microdnf update -y && microdnf install -y \
 COPY requirements-lambda.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy model directly (simpler approach)
+COPY model/unet_best.keras model/unet_best.keras
+
 # Copy application code
 COPY app.py .
 COPY lambda_function.py .
 COPY app/ ./app/
 COPY model/ ./model/
+
+# Ensure model file is present
+RUN ls -la model/ && echo "Model file size:" && du -h model/unet_best.keras
 
 # Set the CMD to your handler
 CMD ["lambda_function.handler"] 

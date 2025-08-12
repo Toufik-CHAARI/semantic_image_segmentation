@@ -80,6 +80,9 @@ scripts/
 .dvc/
 .dvcignore
 
+# Include model files
+!model/*.keras
+
 # MLflow
 MLflowStore/
 
