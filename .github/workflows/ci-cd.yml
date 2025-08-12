@@ -211,7 +211,7 @@ jobs:
           --stack-name semantic-image-segmentation-lambda-container-staging \
           --parameter-overrides Environment=staging \
           --capabilities CAPABILITY_NAMED_IAM \
-          --region eu-west-3
+          --region eu-west-3 || (echo "CloudFormation deployment failed. Checking stack events..." && aws cloudformation describe-stack-events --stack-name semantic-image-segmentation-lambda-container-staging --region eu-west-3 --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`]' --output table && exit 1)
     - name: Get API Gateway URL
       id: get-url
       run: |
@@ -285,9 +285,9 @@ jobs:
         aws cloudformation deploy \
           --template-file aws/lambda-container-deployment.yml \
           --stack-name semantic-image-segmentation-lambda-container-mvp \
-          --parameter-overrides Environment=mvp \
+          --parameter-overrides Environment=production \
           --capabilities CAPABILITY_NAMED_IAM \
-          --region eu-west-3
+          --region eu-west-3 || (echo "CloudFormation deployment failed. Checking stack events..." && aws cloudformation describe-stack-events --stack-name semantic-image-segmentation-lambda-container-mvp --region eu-west-3 --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`]' --output table && exit 1)
     - name: Get API Gateway URL
       id: get-url
       run: |
