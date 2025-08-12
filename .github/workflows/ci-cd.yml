@@ -258,7 +258,7 @@ jobs:
         aws ecr create-repository --repository-name "semantic-image-segmentation-api" --region eu-west-3
     - name: Tag and push Docker image to ECR
       run: |
-        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:latest"
+        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:production"
         docker tag semantic-image-segmentation-api:latest $ECR_URI
         docker push $ECR_URI
     - name: Check and fix CloudFormation stack
