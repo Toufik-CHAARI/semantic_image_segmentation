@@ -1,5 +1,5 @@
 # Multi-stage build pour optimiser la taille de l'image
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 # Définir les variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -26,7 +26,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage de production
-FROM python:3.12-slim as production
+FROM python:3.12-slim AS production
 
 # Définir les variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -36,6 +36,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Installer les dépendances système minimales
 RUN apt-get update && apt-get install -y \
     curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -49,10 +55,9 @@ WORKDIR /app
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Copier uniquement les fichiers nécessaires pour la production
-COPY --chown=appuser:appuser main.py .
-COPY --chown=appuser:appuser lambda_function.py .
+COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser app/ ./app/
-COPY --chown=appuser:appuser models/ ./models/
+COPY --chown=appuser:appuser model/ ./model/
 
 # Créer les répertoires nécessaires
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app
@@ -85,4 +90,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Commande de démarrage pour FastAPI
-CMD ["python", "main.py"] 
+CMD ["python", "app.py"] 

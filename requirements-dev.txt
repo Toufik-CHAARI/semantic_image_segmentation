@@ -21,5 +21,8 @@ bandit==1.7.8
 # Documentation tools
 pydoc-markdown==4.8.3
 
+# DVC with S3 support
+dvc-s3>=3.2.0
+
 # Optional: MLflow for model tracking (if needed)
 # mlflow>=2.8.0

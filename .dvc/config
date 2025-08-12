@@ -1,1 +1,4 @@
-
+[core]
+    remote = myremote
+['remote "myremote"']
+    url = s3://semantic-segmentation-models-1754924238

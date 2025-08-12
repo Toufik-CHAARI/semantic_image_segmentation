@@ -98,10 +98,56 @@ docker-build:
 	docker build -t $(APP_NAME):latest .
 
 docker-build-test:
-	docker build -f Dockerfile.test -t $(APP_NAME):test .
+	cp .dockerignore .dockerignore.backup && \
+	cp .dockerignore.test .dockerignore && \
+	docker build -f Dockerfile.test -t $(APP_NAME):test . && \
+	mv .dockerignore.backup .dockerignore
 
 docker-build-lambda:
 	docker build -f Dockerfile.lambda -t $(APP_NAME)-lambda:latest .
+
+# Docker registry commands
+docker-tag:
+	@echo "Tagging images for registry..."
+	@read -p "Enter registry URL (e.g., your-registry.com/username): " registry; \
+	docker tag $(APP_NAME):latest $$registry/$(APP_NAME):latest; \
+	docker tag $(APP_NAME):test $$registry/$(APP_NAME):test; \
+	docker tag $(APP_NAME)-lambda:latest $$registry/$(APP_NAME)-lambda:latest; \
+	echo "Images tagged with: $$registry"
+
+docker-push:
+	@echo "Pushing images to registry..."
+	@read -p "Enter registry URL (e.g., your-registry.com/username): " registry; \
+	docker push $$registry/$(APP_NAME):latest; \
+	docker push $$registry/$(APP_NAME):test; \
+	docker push $$registry/$(APP_NAME)-lambda:latest; \
+	echo "All images pushed to: $$registry"
+
+docker-push-main:
+	@echo "Pushing main image to registry..."
+	@read -p "Enter registry URL (e.g., your-registry.com/username): " registry; \
+	docker tag $(APP_NAME):latest $$registry/$(APP_NAME):latest; \
+	docker push $$registry/$(APP_NAME):latest; \
+	echo "Main image pushed to: $$registry"
+
+# AWS ECR commands
+docker-push-ecr:
+	@echo "Pushing image to AWS ECR..."
+	@aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 024848440742.dkr.ecr.eu-west-3.amazonaws.com
+	docker tag $(APP_NAME):latest 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
+	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
+	@echo "✅ Image pushed to ECR: 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest"
+
+docker-push-ecr-all:
+	@echo "Pushing all images to AWS ECR..."
+	@aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 024848440742.dkr.ecr.eu-west-3.amazonaws.com
+	docker tag $(APP_NAME):latest 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
+	docker tag $(APP_NAME):test 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):test
+	docker tag $(APP_NAME)-lambda:latest 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME)-lambda:latest
+	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
+	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):test
+	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME)-lambda:latest
+	@echo "✅ All images pushed to ECR"
 
 docker-run:
 	docker run -d --name $(APP_NAME) -p 8000:8000 $(APP_NAME):latest
@@ -229,6 +275,11 @@ help:
 	@echo "  make docker-run        - Démarrer le conteneur"
 	@echo "  make docker-stop       - Arrêter le conteneur"
 	@echo "  make docker-test       - Tester l'image Docker"
+	@echo "  make docker-tag        - Tagger les images pour le registry"
+	@echo "  make docker-push       - Pousser toutes les images"
+	@echo "  make docker-push-main  - Pousser l'image principale"
+	@echo "  make docker-push-ecr   - Pousser l'image vers AWS ECR"
+	@echo "  make docker-push-ecr-all - Pousser toutes les images vers ECR"
 	@echo "  make docker-compose-up - Démarrer avec docker-compose"
 	@echo "  make docker-compose-down - Arrêter docker-compose"
 	@echo "  make docker-compose-test - Tests avec docker-compose"

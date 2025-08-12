@@ -28,9 +28,9 @@ jobs:
       with:
         python-version: '3.12'
     
-    - name: Install DVC
+    - name: Install DVC with S3 support
       run: |
-        pip install dvc
+        pip install dvc dvc-s3
         dvc --version
     
     - name: Configure AWS credentials
@@ -75,9 +75,9 @@ jobs:
       with:
         python-version: '3.12'
     
-    - name: Install DVC
+    - name: Install DVC with S3 support
       run: |
-        pip install dvc
+        pip install dvc dvc-s3
         dvc --version
     
     - name: Configure AWS credentials
