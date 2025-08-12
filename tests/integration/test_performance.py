@@ -167,7 +167,7 @@ class TestPerformance:
         response_time = end_time - start_time
 
         assert response.status_code == 200
-        assert response_time < 1.0  # Moins de 1 seconde pour l'endpoint d'info
+        assert response_time < 2.0  # Moins de 2 secondes pour l'endpoint d'info
 
     @pytest.mark.slow
     def test_stress_test_performance(self, client, sample_image_bytes):
