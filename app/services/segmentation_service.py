@@ -31,6 +31,7 @@ class SegmentationService:
                 if os.getenv("TEST_MODE", "false").lower() == "true":
                     # Créer un modèle mock pour les tests
                     from unittest.mock import Mock
+
                     mock_model = Mock()
                     mock_model.predict.return_value = [
                         np.random.rand(*self.IMG_SIZE, self.N_CLASSES)
