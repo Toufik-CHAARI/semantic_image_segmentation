@@ -23,14 +23,18 @@ class SegmentationService:
         """Charge le modèle de manière lazy"""
         if self._model is None:
             try:
-                self._model = tf.keras.models.load_model(settings.MODEL_PATH, compile=False)
+                self._model = tf.keras.models.load_model(
+                    settings.MODEL_PATH, compile=False
+                )
             except Exception as e:
                 # En mode test, on peut utiliser un mock ou lever une exception
                 if os.getenv("TEST_MODE", "false").lower() == "true":
                     # Créer un modèle mock pour les tests
                     from unittest.mock import Mock
                     mock_model = Mock()
-                    mock_model.predict.return_value = [np.random.rand(*self.IMG_SIZE, self.N_CLASSES)]
+                    mock_model.predict.return_value = [
+                        np.random.rand(*self.IMG_SIZE, self.N_CLASSES)
+                    ]
                     self._model = mock_model
                 else:
                     raise e
