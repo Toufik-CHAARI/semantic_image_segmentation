@@ -38,9 +38,12 @@ class TestSegmentationService:
 
     def test_init(self, mock_model):
         """Test de l'initialisation du service"""
-        with patch(
-            "app.services.segmentation_service.tf.keras.models.load_model",
-            return_value=mock_model,
+        with (
+            patch("os.path.exists", return_value=True),
+            patch(
+                "app.services.segmentation_service.tf.keras.models.load_model",
+                return_value=mock_model,
+            ),
         ):
             service = SegmentationService()
 
@@ -90,18 +93,28 @@ class TestSegmentationService:
 
     def test_segment_image(self, service, sample_image_bytes):
         """Test de la segmentation complète d'une image"""
-        result_bytes, stats = service.segment_image(sample_image_bytes)
+        with (
+            patch("os.path.exists", return_value=True),
+            patch(
+                "app.services.segmentation_service.tf.keras.models.load_model"
+            ) as mock_load,
+        ):
+            mock_model = Mock()
+            mock_model.predict.return_value = [np.random.rand(256, 512, 8)]
+            mock_load.return_value = mock_model
 
-        assert isinstance(result_bytes, bytes)
-        assert isinstance(stats, dict)
-        assert len(stats) == 8
+            result_bytes, stats = service.segment_image(sample_image_bytes)
 
-        # Vérifier que l'image résultante est un PNG valide
-        try:
-            img = Image.open(io.BytesIO(result_bytes))
-            assert img.format == "PNG"
-        except Exception:
-            pytest.fail("L'image résultante n'est pas un PNG valide")
+            assert isinstance(result_bytes, bytes)
+            assert isinstance(stats, dict)
+            assert len(stats) == 8
+
+            # Vérifier que l'image résultante est un PNG valide
+            try:
+                img = Image.open(io.BytesIO(result_bytes))
+                assert img.format == "PNG"
+            except Exception:
+                pytest.fail("L'image résultante n'est pas un PNG valide")
 
     def test_segment_image_empty_bytes(self, service):
         """Test de segmentation avec des bytes vides"""
@@ -163,7 +176,7 @@ class TestSegmentationService:
             service._download_model_from_s3()
 
             mock_s3_client.download_file.assert_called_once_with(
-                "test-bucket", "models/unet_best.keras", "model/unet_best.keras"
+                "test-bucket", "unet_best.keras", "unet_best.keras"
             )
 
     def test_download_model_from_s3_file_exists(self, service):
@@ -211,7 +224,7 @@ class TestSegmentationService:
             result = service.model
 
             mock_download.assert_called_once()
-            mock_load.assert_called_once_with("model/unet_best.keras", compile=False)
+            mock_load.assert_called_once_with("unet_best.keras", compile=False)
             assert result == mock_model
 
     def test_model_property_without_s3_download(self, service):
@@ -228,5 +241,5 @@ class TestSegmentationService:
 
             result = service.model
 
-            mock_load.assert_called_once_with("model/unet_best.keras", compile=False)
+            mock_load.assert_called_once_with("unet_best.keras", compile=False)
             assert result == mock_model

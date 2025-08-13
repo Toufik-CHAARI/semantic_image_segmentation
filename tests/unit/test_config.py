@@ -28,7 +28,7 @@ class TestSettings:
                 "utilisant un modèle U-Net"
             )
             assert test_settings.API_VERSION == "1.0.0"
-            assert test_settings.MODEL_PATH == "model/unet_best.keras"
+            assert test_settings.MODEL_PATH == "unet_best.keras"
             assert test_settings.N_CLASSES == 8
             assert test_settings.IMG_SIZE == (256, 512)
             assert test_settings.HOST == "0.0.0.0"
