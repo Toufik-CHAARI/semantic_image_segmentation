@@ -213,60 +213,6 @@ check_ecr_repository() {
     fi
 }
 
-# Function to rebuild and redeploy Lambda image
-rebuild_lambda_image() {
-    log_info "Rebuilding Lambda image..."
-    
-    # Build Lambda image
-    log_debug "Building Docker image..."
-    docker build -f Dockerfile.lambda -t semantic-image-segmentation-api-lambda:latest . || {
-        log_error "❌ Failed to build Lambda image"
-        return 1
-    }
-    
-    log_info "✅ Lambda image built successfully"
-    
-    # Tag and push to ECR
-    log_debug "Tagging and pushing to ECR..."
-    aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin 024848440742.dkr.ecr.eu-west-3.amazonaws.com || {
-        log_error "❌ Failed to login to ECR"
-        return 1
-    }
-    
-    docker tag semantic-image-segmentation-api-lambda:latest 024848440742.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:latest || {
-        log_error "❌ Failed to tag image"
-        return 1
-    }
-    
-    docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:latest || {
-        log_error "❌ Failed to push image to ECR"
-        return 1
-    }
-    
-    log_info "✅ Lambda image pushed to ECR successfully"
-}
-
-# Function to update Lambda function
-update_lambda_function() {
-    log_info "Updating Lambda function..."
-    
-    # Update function code
-    aws lambda update-function-code \
-        --function-name $LAMBDA_FUNCTION_NAME \
-        --image-uri 024848440742.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:latest \
-        --region $REGION || {
-        log_error "❌ Failed to update Lambda function"
-        return 1
-    }
-    
-    log_info "✅ Lambda function updated successfully"
-    
-    # Wait for update to complete
-    log_debug "Waiting for update to complete..."
-    aws lambda wait function-updated --function-name $LAMBDA_FUNCTION_NAME --region $REGION
-    
-    log_info "✅ Lambda function update completed"
-}
 
 # Function to show common fixes
 show_common_fixes() {
@@ -335,13 +281,7 @@ main() {
             ;;
         "check-status")
             check_stack_status && check_lambda_status
-            ;;
-        "rebuild")
-            rebuild_lambda_image
-            ;;
-        "redeploy")
-            rebuild_lambda_image && update_lambda_function
-            ;;
+            ;;        
         "fixes")
             show_common_fixes
             ;;

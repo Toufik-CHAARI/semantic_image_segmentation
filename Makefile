@@ -5,6 +5,9 @@ PYTHON = python
 PIP = pip
 PYTEST = python -m pytest
 APP_NAME = semantic-image-segmentation-api
+ENVIRONMENT ?= mvp
+AWS_REGION = eu-west-3
+AWS_ACCOUNT_ID = 024848440742
 
 # Installation des dépendances de test
 install-test:
@@ -95,7 +98,7 @@ run:
 
 # Docker commands
 docker-build:
-	docker build -t $(APP_NAME):latest .
+	docker build -t $(APP_NAME):$(ENVIRONMENT) .
 
 docker-build-test:
 	cp .dockerignore .dockerignore.backup && \
@@ -104,7 +107,7 @@ docker-build-test:
 	mv .dockerignore.backup .dockerignore
 
 docker-build-lambda:
-	docker build -f Dockerfile.lambda -t $(APP_NAME)-lambda:latest .
+	docker build -f Dockerfile.lambda -t $(APP_NAME)-lambda:$(ENVIRONMENT) .
 
 # Build all Docker images for development
 docker-build-all:
@@ -119,6 +122,13 @@ docker-build-all:
 	@echo ""
 	@echo "📊 Image summary:"
 	@docker images | grep $(APP_NAME) || echo "No images found"
+
+# Build and deploy Lambda for specific environment
+docker-deploy-lambda:
+	@echo "🚀 Building and deploying Lambda for environment: $(ENVIRONMENT)"
+	@make docker-build-lambda
+	@make docker-push-ecr-lambda
+	@echo "✅ Lambda deployment completed for $(ENVIRONMENT)"
 
 # Docker registry commands
 docker-tag:
@@ -146,21 +156,28 @@ docker-push-main:
 
 # AWS ECR commands
 docker-push-ecr:
-	@echo "Pushing image to AWS ECR..."
-	@aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 024848440742.dkr.ecr.eu-west-3.amazonaws.com
-	docker tag $(APP_NAME):latest 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
-	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
-	@echo "✅ Image pushed to ECR: 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest"
+	@echo "Pushing production image to AWS ECR..."
+	@aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+	docker tag $(APP_NAME):$(ENVIRONMENT) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):$(ENVIRONMENT)
+	docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):$(ENVIRONMENT)
+	@echo "✅ Production image pushed to ECR: $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):$(ENVIRONMENT)"
+
+docker-push-ecr-lambda:
+	@echo "Pushing Lambda image to AWS ECR..."
+	@aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+	docker tag $(APP_NAME)-lambda:$(ENVIRONMENT) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)
+	docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)
+	@echo "✅ Lambda image pushed to ECR: $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)"
 
 docker-push-ecr-all:
 	@echo "Pushing all images to AWS ECR..."
-	@aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 024848440742.dkr.ecr.eu-west-3.amazonaws.com
-	docker tag $(APP_NAME):latest 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
-	docker tag $(APP_NAME):test 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):test
-	docker tag $(APP_NAME)-lambda:latest 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME)-lambda:latest
-	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):latest
-	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME):test
-	docker push 024848440742.dkr.ecr.eu-west-3.amazonaws.com/$(APP_NAME)-lambda:latest
+	@aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+	docker tag $(APP_NAME):$(ENVIRONMENT) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):$(ENVIRONMENT)
+	docker tag $(APP_NAME):test $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):test
+	docker tag $(APP_NAME)-lambda:$(ENVIRONMENT) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)
+	docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):$(ENVIRONMENT)
+	docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):test
+	docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)
 	@echo "✅ All images pushed to ECR"
 
 docker-run:
@@ -178,7 +195,7 @@ docker-test-all:
 	@echo "🧪 Testing all Docker images..."
 	@echo ""
 	@echo "📦 Testing production image..."
-	@docker run --rm -d --name test-prod -p 8001:8000 $(APP_NAME):latest || true
+	@docker run --rm -d --name test-prod -p 8001:8000 $(APP_NAME):$(ENVIRONMENT) || true
 	@sleep 10
 	@curl -f http://localhost:8001/health > /dev/null 2>&1 && echo "✅ Production image: HEALTH OK" || echo "❌ Production image: HEALTH FAILED"
 	@docker stop test-prod > /dev/null 2>&1 || true
@@ -192,7 +209,7 @@ docker-test-all:
 	@docker rm test-test > /dev/null 2>&1 || true
 	@echo ""
 	@echo "☁️ Testing Lambda image..."
-	@docker run --rm -d --name test-lambda -p 8003:8080 $(APP_NAME)-lambda:latest || true
+	@docker run --rm -d --name test-lambda -p 8003:8080 $(APP_NAME)-lambda:$(ENVIRONMENT) || true
 	@sleep 5
 	@docker logs test-lambda | grep -q "rapid" && echo "✅ Lambda image: RUNTIME OK" || echo "❌ Lambda image: RUNTIME FAILED"
 	@docker stop test-lambda > /dev/null 2>&1 || true
@@ -335,6 +352,8 @@ help:
 	@echo "  make docker-build-lambda - Construire l'image Lambda"
 	@echo "  make docker-build-all - Construire toutes les images Docker"
 	@echo "  make docker-test-all - Tester toutes les images Docker"
+	@echo "  make docker-deploy-lambda - Construire et déployer Lambda (ENVIRONMENT=mvp)"
+	@echo "  make docker-push-ecr-lambda - Pousser l'image Lambda vers ECR"
 	@echo "  make docker-run        - Démarrer le conteneur"
 	@echo "  make docker-stop       - Arrêter le conteneur"
 	@echo "  make docker-test       - Tester l'image Docker"

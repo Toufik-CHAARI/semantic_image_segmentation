@@ -51,17 +51,17 @@ echo "📦 Building Docker image for Lambda..."
 cd "$PROJECT_ROOT"
 
 # Build the Lambda container image
-docker build -f Dockerfile.lambda -t "${ECR_REPOSITORY_NAME}:latest" .
+docker build -f Dockerfile.lambda -t "${ECR_REPOSITORY_NAME}:${ENVIRONMENT}" .
 
 echo "🔐 Logging in to ECR..."
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
 echo "📤 Pushing image to ECR..."
 # Tag the image for ECR
-docker tag "${ECR_REPOSITORY_NAME}:latest" "${ECR_REPOSITORY_URI}:latest"
+docker tag "${ECR_REPOSITORY_NAME}:${ENVIRONMENT}" "${ECR_REPOSITORY_URI}:${ENVIRONMENT}"
 
 # Push to ECR
-docker push "${ECR_REPOSITORY_URI}:latest"
+docker push "${ECR_REPOSITORY_URI}:${ENVIRONMENT}"
 
 echo "☁️ Deploying CloudFormation stack..."
 aws cloudformation deploy \

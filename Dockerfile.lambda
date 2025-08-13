@@ -1,6 +1,12 @@
 # Lambda Container Image for Semantic Image Segmentation API
 FROM public.ecr.aws/lambda/python:3.12
 
+# Set environment variables for consistency
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
 # Install system dependencies required for OpenCV
 RUN microdnf update -y && microdnf install -y \
     glib2 \
@@ -21,7 +27,9 @@ COPY lambda_function.py .
 COPY app/ ./app/
 COPY model/ ./model/
 
-
+# Set environment variables for Lambda
+ENV LOG_LEVEL=info \
+    LAMBDA_MODE=true
 
 # Set the CMD to your handler
 CMD ["lambda_function.handler"] 
