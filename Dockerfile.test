@@ -4,17 +4,19 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    curl \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
+# Install minimal system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        curl \
+        libgl1 \
+        libglib2.0-0 \
+        libsm6 \
+        libxext6 \
+        libxrender-dev \
+        libgomp1 \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
@@ -27,9 +29,8 @@ COPY app.py .
 COPY app/ ./app/
 COPY model/ ./model/
 
-# Copy test files
-COPY tests/ ./tests/
-COPY pytest.ini .
+# Create a simple pytest configuration
+RUN printf '[tool:pytest]\ntestpaths = tests\npython_files = test_*.py\npython_classes = Test*\npython_functions = test_*\naddopts = -v --tb=short --strict-markers --disable-warnings --color=yes\nmarkers =\n    unit: Tests unitaires\n    integration: Tests d integration\n    slow: Tests lents\n    fast: Tests rapides\nfilterwarnings =\n    ignore::DeprecationWarning\n    ignore::PendingDeprecationWarning\n    ignore::UserWarning\n' > pytest.ini
 
 # Set environment for testing
 ENV LOG_LEVEL=info
