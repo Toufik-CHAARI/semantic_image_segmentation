@@ -16,7 +16,7 @@ Resources:
       FunctionName: !Sub '${Environment}-semantic-image-segmentation-api'
       PackageType: Image
       Code:
-        ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/semantic-image-segmentation-api:${Environment}'
+        ImageUri: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Environment}-semantic-image-segmentation-api:latest'
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 300
       MemorySize: 4096
