@@ -106,6 +106,20 @@ docker-build-test:
 docker-build-lambda:
 	docker build -f Dockerfile.lambda -t $(APP_NAME)-lambda:latest .
 
+# Build all Docker images for development
+docker-build-all:
+	@echo "🏗️ Building all Docker images for development..."
+	@echo "📦 Building production image..."
+	@make docker-build
+	@echo "🧪 Building test image..."
+	@make docker-build-test
+	@echo "☁️ Building Lambda image..."
+	@make docker-build-lambda
+	@echo "✅ All images built successfully!"
+	@echo ""
+	@echo "📊 Image summary:"
+	@docker images | grep $(APP_NAME) || echo "No images found"
+
 # Docker registry commands
 docker-tag:
 	@echo "Tagging images for registry..."
@@ -159,6 +173,33 @@ docker-stop:
 docker-test:
 	docker run --rm $(APP_NAME):test
 
+# Test all Docker images
+docker-test-all:
+	@echo "🧪 Testing all Docker images..."
+	@echo ""
+	@echo "📦 Testing production image..."
+	@docker run --rm -d --name test-prod -p 8001:8000 $(APP_NAME):latest || true
+	@sleep 10
+	@curl -f http://localhost:8001/health > /dev/null 2>&1 && echo "✅ Production image: HEALTH OK" || echo "❌ Production image: HEALTH FAILED"
+	@docker stop test-prod > /dev/null 2>&1 || true
+	@docker rm test-prod > /dev/null 2>&1 || true
+	@echo ""
+	@echo "🧪 Testing test image..."
+	@docker run --rm -d --name test-test -p 8002:8000 $(APP_NAME):test || true
+	@sleep 10
+	@curl -f http://localhost:8002/health > /dev/null 2>&1 && echo "✅ Test image: HEALTH OK" || echo "❌ Test image: HEALTH FAILED"
+	@docker stop test-test > /dev/null 2>&1 || true
+	@docker rm test-test > /dev/null 2>&1 || true
+	@echo ""
+	@echo "☁️ Testing Lambda image..."
+	@docker run --rm -d --name test-lambda -p 8003:8080 $(APP_NAME)-lambda:latest || true
+	@sleep 5
+	@docker logs test-lambda | grep -q "rapid" && echo "✅ Lambda image: RUNTIME OK" || echo "❌ Lambda image: RUNTIME FAILED"
+	@docker stop test-lambda > /dev/null 2>&1 || true
+	@docker rm test-lambda > /dev/null 2>&1 || true
+	@echo ""
+	@echo "🎉 All Docker images tested!"
+
 docker-compose-up:
 	docker-compose up -d
 
@@ -185,6 +226,26 @@ security-scan:
 
 # Vérification de la qualité du code
 quality-check: lint format-check test-coverage security-scan
+
+# Complete development workflow - build, test, and validate all images
+dev-workflow:
+	@echo "🚀 Starting complete development workflow..."
+	@echo "================================================"
+	@echo ""
+	@echo "1️⃣ Running code quality checks..."
+	@make quality-check
+	@echo ""
+	@echo "2️⃣ Building all Docker images..."
+	@make docker-build-all
+	@echo ""
+	@echo "3️⃣ Testing all Docker images..."
+	@make docker-test-all
+	@echo ""
+	@echo "4️⃣ Running full test suite..."
+	@make test-coverage-detail
+	@echo ""
+	@echo "🎉 Development workflow completed successfully!"
+	@echo "All images are ready for deployment!"
 
 # Nettoyage des fichiers de test
 clean:
@@ -272,6 +333,8 @@ help:
 	@echo "  make docker-build      - Construire l'image Docker"
 	@echo "  make docker-build-test - Construire l'image de test"
 	@echo "  make docker-build-lambda - Construire l'image Lambda"
+	@echo "  make docker-build-all - Construire toutes les images Docker"
+	@echo "  make docker-test-all - Tester toutes les images Docker"
 	@echo "  make docker-run        - Démarrer le conteneur"
 	@echo "  make docker-stop       - Arrêter le conteneur"
 	@echo "  make docker-test       - Tester l'image Docker"
@@ -290,6 +353,7 @@ help:
 	@echo "  make format-check      - Vérifier le formatage"
 	@echo "  make security-scan     - Scan de sécurité"
 	@echo "  make quality-check     - Vérification complète de la qualité"
+	@echo "  make dev-workflow      - Workflow complet de développement"
 	@echo ""
 	@echo "🧹 Nettoyage:"
 	@echo "  make clean             - Nettoyer les fichiers de test"

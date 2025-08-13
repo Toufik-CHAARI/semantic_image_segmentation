@@ -8,6 +8,7 @@ RUN microdnf update -y && microdnf install -y \
     libXext \
     libXrender \
     libgomp \
+    mesa-libGL \
     && microdnf clean all
 
 # Copy requirements and install dependencies
