@@ -34,12 +34,17 @@ class SegmentationService:
                 try:
                     print("Using DVC to download model...")
                     # DVC will handle the S3 download automatically
-                    os.system("dvc pull model/unet_best.keras.dvc")
-                    print(
-                        f"Model downloaded successfully using DVC to "
-                        f"{settings.MODEL_PATH}"
-                    )
-                    return
+                    result = os.system("dvc pull model/unet_best.keras.dvc")
+                    if result == 0:
+                        print(
+                            f"Model downloaded successfully using DVC to "
+                            f"{settings.MODEL_PATH}"
+                        )
+                        return
+                    else:
+                        print(
+                            "DVC command failed, falling back to direct S3 download..."
+                        )
                 except ImportError:
                     print("DVC not available, falling back to direct S3 download...")
 

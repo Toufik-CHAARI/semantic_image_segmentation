@@ -168,6 +168,7 @@ class TestSegmentationService:
             patch("os.path.exists", return_value=False),
             patch("boto3.client") as mock_boto3,
             patch("os.getenv", return_value="test-bucket"),
+            patch("os.system", return_value=1),  # DVC command fails
         ):
 
             mock_s3_client = Mock()
@@ -185,21 +186,115 @@ class TestSegmentationService:
             service._download_model_from_s3()
             # Ne devrait pas appeler boto3
 
+    def test_download_model_from_s3_dvc_success(self, service):
+        """Test du téléchargement réussi du modèle via DVC"""
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("os.system", return_value=0),  # DVC command succeeds
+        ):
+            service._download_model_from_s3()
+            # Should return early without calling S3
+
+    def test_download_model_from_s3_dvc_import_error(self, service):
+        """Test quand DVC n'est pas disponible (ImportError)"""
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("boto3.client") as mock_boto3,
+            patch("os.getenv", return_value="test-bucket"),
+            patch(
+                "builtins.__import__", side_effect=ImportError("No module named 'dvc'")
+            ),
+        ):
+            mock_s3_client = Mock()
+            mock_boto3.return_value = mock_s3_client
+
+            service._download_model_from_s3()
+
+            mock_s3_client.download_file.assert_called_once_with(
+                "test-bucket", "unet_best.keras", "unet_best.keras"
+            )
+
+    def test_model_property_with_test_mode(self, service):
+        """Test de la propriété model en mode test"""
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("os.getenv", return_value="true"),  # TEST_MODE=true
+            patch("os.system", return_value=1),  # DVC fails
+            patch("boto3.client") as mock_boto3,
+        ):
+            mock_s3_client = Mock()
+            mock_s3_client.download_file.side_effect = Exception("S3 error")
+            mock_boto3.return_value = mock_s3_client
+
+            result = service.model
+            assert result is not None
+            assert hasattr(result, "predict")
+
+    def test_model_property_with_test_mode_and_load_failure(self, service):
+        """Test de la propriété model en mode test avec échec de chargement"""
+        with (
+            patch("os.path.exists", return_value=True),  # File exists
+            patch("os.getenv", return_value="true"),  # TEST_MODE=true
+            patch(
+                "app.services.segmentation_service.tf.keras.models.load_model"
+            ) as mock_load,
+        ):
+            mock_load.side_effect = Exception("Model loading failed")
+
+            result = service.model
+            assert result is not None
+            assert hasattr(result, "predict")
+
     def test_download_model_from_s3_boto3_not_available(self):
         """Test quand boto3 n'est pas disponible"""
         with (
             patch("app.services.segmentation_service.BOTO3_AVAILABLE", False),
             patch("os.path.exists", return_value=False),
+            patch("os.system", return_value=1),  # DVC command fails
         ):
             service = SegmentationService()
             with pytest.raises(ImportError, match="boto3 is not available"):
                 service._download_model_from_s3()
+
+    def test_model_property_without_test_mode(self, service):
+        """Test de la propriété model sans mode test (exception raised)"""
+        with (
+            patch("os.path.exists", return_value=True),  # File exists
+            patch("os.getenv", return_value="false"),  # TEST_MODE=false
+            patch(
+                "app.services.segmentation_service.tf.keras.models.load_model"
+            ) as mock_load,
+        ):
+            mock_load.side_effect = Exception("Model loading failed")
+
+            with pytest.raises(Exception, match="Model loading failed"):
+                service.model
+
+    def test_download_model_from_s3_dvc_import_error_direct(self, service):
+        """Test quand DVC n'est pas disponible (ImportError direct)"""
+        with (
+            patch("os.path.exists", return_value=False),
+            patch("boto3.client") as mock_boto3,
+            patch("os.getenv", return_value="test-bucket"),
+            patch(
+                "builtins.__import__", side_effect=ImportError("No module named 'dvc'")
+            ),
+        ):
+            mock_s3_client = Mock()
+            mock_boto3.return_value = mock_s3_client
+
+            service._download_model_from_s3()
+
+            mock_s3_client.download_file.assert_called_once_with(
+                "test-bucket", "unet_best.keras", "unet_best.keras"
+            )
 
     def test_download_model_from_s3_error(self, service):
         """Test de l'erreur lors du téléchargement depuis S3"""
         with (
             patch("os.path.exists", return_value=False),
             patch("boto3.client") as mock_boto3,
+            patch("os.system", return_value=1),  # DVC command fails
         ):
 
             mock_s3_client = Mock()
