@@ -50,9 +50,23 @@ class TestAPIEndpoints:
             mock_service.return_value = (mock_img_bytes.getvalue(), mock_stats)
             yield mock_service
 
-    def test_root_endpoint(self, client):
-        """Test de l'endpoint racine"""
-        response = client.get("/")
+    def test_root_endpoint_browser(self, client):
+        """Test de l'endpoint racine pour les navigateurs (HTML)"""
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+        response = client.get("/", headers=headers)
+
+        assert response.status_code == 200
+        # Root endpoint returns HTML content for browsers
+        assert response.headers["content-type"] == "text/html; charset=utf-8"
+        assert "<!DOCTYPE html>" in response.text
+        assert "Semantic Image Segmentation" in response.text
+
+    def test_root_endpoint_api(self, client):
+        """Test de l'endpoint racine pour les API (JSON)"""
+        headers = {"Accept": "application/json"}
+        response = client.get("/", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -62,7 +76,18 @@ class TestAPIEndpoints:
         assert "documentation" in data
         assert "health_check" in data
         assert "info" in data
+        assert "web_interface" in data
         assert data["version"] == "1.0.0"
+
+    def test_web_interface_endpoint(self, client):
+        """Test de l'endpoint de l'interface web"""
+        response = client.get("/web")
+
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/html; charset=utf-8"
+        assert "<!DOCTYPE html>" in response.text
+        assert "Semantic Image Segmentation" in response.text
+        assert "drag and drop" in response.text.lower()
 
     def test_health_endpoint(self, client):
         """Test de l'endpoint de santé"""

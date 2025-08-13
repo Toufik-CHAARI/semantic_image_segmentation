@@ -68,9 +68,13 @@ class TestFullApplication:
 
     def test_application_startup(self, client):
         """Test que l'application démarre correctement"""
-        # Vérifier que l'application répond
-        response = client.get("/")
+        # Vérifier que l'application répond (test API JSON)
+        headers = {"Accept": "application/json"}
+        response = client.get("/", headers=headers)
         assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert "version" in data
 
         # Vérifier que la documentation est accessible
         response = client.get("/docs")

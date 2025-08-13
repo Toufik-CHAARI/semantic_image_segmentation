@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+import os
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
 
 from app.api import health, segmentation
 from app.config import settings
@@ -49,12 +49,37 @@ async def shutdown_event():
     print("🛑 Arrêt de l'API de segmentation sémantique...")
 
 
-# Route racine redirige vers l'interface web
+# Route racine - supporte HTML et JSON selon le type de requête
 @app.get("/")
-async def root():
-    """Route racine - redirige vers l'interface web"""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/web")
+async def root(request: Request):
+    """Route racine - retourne HTML pour les navigateurs, JSON pour les API"""
+    # Vérifier si c'est une requête de navigateur ou d'API
+    user_agent = request.headers.get("user-agent", "").lower()
+    accept_header = request.headers.get("accept", "").lower()
+
+    # Si c'est un navigateur ou demande HTML explicitement
+    if (
+        "mozilla" in user_agent
+        or "chrome" in user_agent
+        or "safari" in user_agent
+        or "firefox" in user_agent
+        or "edge" in user_agent
+        or "text/html" in accept_header
+    ):
+        from fastapi.responses import RedirectResponse
+
+        return RedirectResponse(url="/web")
+
+    # Sinon, retourner JSON pour les API
+    return {
+        "message": "Bienvenue sur l'API de segmentation sémantique Cityscapes",
+        "version": "1.0.0",
+        "documentation": "/docs",
+        "health_check": "/health",
+        "info": "/info",
+        "web_interface": "/web",
+    }
+
 
 # Route pour l'interface web
 @app.get("/web")
@@ -161,11 +186,14 @@ async def web_interface():
 <body>
     <div class="container">
         <h1>🎯 Semantic Image Segmentation</h1>
-        
+
         <div class="upload-area" id="uploadArea">
             <p>📁 Drag and drop an image here or click to select</p>
             <input type="file" id="fileInput" accept="image/*">
-            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+            <button
+                class="upload-btn"
+                onclick="document.getElementById('fileInput').click()"
+            >
                 Choose Image
             </button>
         </div>
@@ -182,28 +210,34 @@ async def web_interface():
         </div>
 
         <div id="stats" class="stats" style="display: none;"></div>
-        <div id="loading" class="loading" style="display: none;">Processing image...</div>
+        <div id="loading" class="loading" style="display: none;">
+            Processing image...
+        </div>
         <div id="error" class="error" style="display: none;"></div>
         <div id="success" class="success" style="display: none;"></div>
     </div>
 
     <script>
         const API_BASE_URL = window.location.origin;
-        
+
         // File input handling
-        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
-        
+        document
+            .getElementById('fileInput')
+            .addEventListener('change', handleFileSelect);
+
         // Drag and drop handling
-        const uploadArea = document.getElementById('uploadArea');
+        const uploadArea = document.getElementById(
+            'uploadArea'
+        );
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
         });
-        
+
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.classList.remove('dragover');
         });
-        
+
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
@@ -229,12 +263,17 @@ async def web_interface():
             // Show original image
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('originalImage').src = e.target.result;
-                document.getElementById('preview').style.display = 'flex';
+                document.getElementById('originalImage').src =
+                    e.target.result;
+                document.getElementById('preview').style.display =
+                    'flex';
                 document.getElementById('segmentedImage').src = '';
-                document.getElementById('stats').style.display = 'none';
-                document.getElementById('error').style.display = 'none';
-                document.getElementById('success').style.display = 'none';
+                document.getElementById('stats').style.display =
+                    'none';
+                document.getElementById('error').style.display =
+                    'none';
+                document.getElementById('success').style.display =
+                    'none';
             };
             reader.readAsDataURL(file);
 
@@ -244,31 +283,42 @@ async def web_interface():
 
         async function processImage(file) {
             showLoading();
-            
+
             const formData = new FormData();
             formData.append('file', file);
 
             try {
                 // First, get the segmented image
-                const imageResponse = await fetch(`${API_BASE_URL}/api/segment`, {
+                const imageResponse = await fetch(
+                    `${API_BASE_URL}/api/segment`,
+                    {
                     method: 'POST',
                     body: formData
                 });
 
                 if (!imageResponse.ok) {
-                    throw new Error(`HTTP error! status: ${imageResponse.status}`);
+                    throw new Error(
+                    `HTTP error! status: ${imageResponse.status}`
+                );
                 }
 
                 const imageBlob = await imageResponse.blob();
                 const imageUrl = URL.createObjectURL(imageBlob);
-                document.getElementById('segmentedImage').src = imageUrl;
+                document.getElementById('segmentedImage').src =
+                    imageUrl;
 
                 // Get processing time from headers
-                const processingTime = imageResponse.headers.get('X-Processing-Time');
-                const imageStats = imageResponse.headers.get('X-Image-Stats');
+                const processingTime = imageResponse.headers.get(
+                    'X-Processing-Time'
+                );
+                const imageStats = imageResponse.headers.get(
+                    'X-Image-Stats'
+                );
 
                 // Then, get detailed stats
-                const statsResponse = await fetch(`${API_BASE_URL}/api/segment-with-stats`, {
+                const statsResponse = await fetch(
+                    `${API_BASE_URL}/api/segment-with-stats`,
+                    {
                     method: 'POST',
                     body: formData
                 });
@@ -283,13 +333,17 @@ async def web_interface():
 
             } catch (error) {
                 console.error('Error:', error);
-                showError('Error processing image: ' + error.message);
+                showError(
+                    'Error processing image: ' + error.message
+                );
                 hideLoading();
             }
         }
 
         function displayStats(stats, processingTime) {
-            const statsDiv = document.getElementById('stats');
+            const statsDiv = document.getElementById(
+                'stats'
+            );
             statsDiv.innerHTML = `
 Processing Time: ${processingTime || 'N/A'}
 Image Size: ${stats.image_size || 'N/A'}
@@ -302,29 +356,39 @@ ${JSON.stringify(stats.stats, null, 2)}
         }
 
         function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('error').style.display = 'none';
+            document.getElementById('loading').style.display =
+                'block';
+            document.getElementById('error').style.display =
+                'none';
             document.getElementById('success').style.display = 'none';
         }
 
         function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loading').style.display =
+                'none';
         }
 
         function showError(message) {
-            document.getElementById('error').textContent = message;
-            document.getElementById('error').style.display = 'block';
-            document.getElementById('success').style.display = 'none';
+            document.getElementById('error').textContent =
+                message;
+            document.getElementById('error').style.display
+            = 'block';
+            document.getElementById('success').style.display
+            = 'none';
         }
 
         function showSuccess(message) {
-            document.getElementById('success').textContent = message;
-            document.getElementById('success').style.display = 'block';
-            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').textContent =
+                message;
+            document.getElementById('success').style.display
+            = 'block';
+            document.getElementById('error').style.display
+            = 'none';
         }
     </script>
 </body>
 </html>
     """
     from fastapi.responses import HTMLResponse
+
     return HTMLResponse(content=html_content)

@@ -52,4 +52,8 @@ aws cloudformation describe-stack-events \
   --stack-name $STACK_NAME \
   --region $REGION \
   --query 'StackEvents[0:10].{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason,Timestamp:Timestamp}' \
-  --output table 
+  --output table
+
+echo ""
+echo"PAI URL"
+aws cloudformation describe-stacks --stack-name semantic-image-segmentation-lambda-container-production --region eu-west-3 --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' --output text 
