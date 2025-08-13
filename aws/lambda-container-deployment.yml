@@ -96,7 +96,7 @@ Resources:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SemanticImageSegmentationFunction.Arn}/invocations'
-        TimeoutInMillis: 300000
+        TimeoutInMillis: 29000
 
   # API Gateway Root Method
   ApiRootMethod:
@@ -110,7 +110,7 @@ Resources:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
         Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SemanticImageSegmentationFunction.Arn}/invocations'
-        TimeoutInMillis: 300000
+        TimeoutInMillis: 29000
 
   # Lambda Permission for API Gateway
   LambdaPermission:
