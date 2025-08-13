@@ -66,9 +66,8 @@ async def root(request: Request):
         or "edge" in user_agent
         or "text/html" in accept_header
     ):
-        from fastapi.responses import RedirectResponse
-
-        return RedirectResponse(url="/web")
+        # Return the web interface directly instead of redirecting
+        return get_web_interface_response()
 
     # Sinon, retourner JSON pour les API
     return {
@@ -81,10 +80,10 @@ async def root(request: Request):
     }
 
 
-# Route pour l'interface web
-@app.get("/web")
-async def web_interface():
-    """Interface web pour l'upload d'images"""
+def get_web_interface_response():
+    """Helper function to return the web interface HTML response"""
+    from fastapi.responses import HTMLResponse
+
     html_content = """
 <!DOCTYPE html>
 <html lang="en">
@@ -389,6 +388,18 @@ ${JSON.stringify(stats.stats, null, 2)}
 </body>
 </html>
     """
-    from fastapi.responses import HTMLResponse
+    return HTMLResponse(
+        content=html_content,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
-    return HTMLResponse(content=html_content)
+
+# Route pour l'interface web
+@app.get("/web")
+async def web_interface():
+    """Interface web pour l'upload d'images"""
+    return get_web_interface_response()
