@@ -14,7 +14,7 @@ class Settings:
     API_VERSION = "1.0.0"
 
     # Configuration du modèle
-    MODEL_PATH = "model/unet_best.keras"
+    MODEL_PATH = "unet_best.keras"
     N_CLASSES = 8
     IMG_SIZE = (256, 512)
 

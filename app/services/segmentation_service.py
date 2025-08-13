@@ -40,7 +40,7 @@ class SegmentationService:
                 bucket_name = os.getenv(
                     "DVC_S3_BUCKET", "semantic-segmentation-models-1754924238"
                 )
-                model_key = "models/unet_best.keras"
+                model_key = "unet_best.keras"
 
                 print(f"Downloading model from s3://{bucket_name}/{model_key}")
                 s3_client.download_file(bucket_name, model_key, settings.MODEL_PATH)
