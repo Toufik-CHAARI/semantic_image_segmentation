@@ -1,66 +1,3 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
-
-from app.api import health, segmentation
-from app.config import settings
-
-# Création de l'application FastAPI
-app = FastAPI(
-    title=settings.API_TITLE,
-    description=settings.API_DESCRIPTION,
-    version=settings.API_VERSION,
-    docs_url="/docs",
-    redoc_url="/redoc",
-)
-
-# Configuration CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Inclusion des routes
-app.include_router(health.router, tags=["Health & Info"])
-app.include_router(segmentation.router, prefix="/api", tags=["Segmentation"])
-
-# Mount static files
-if os.path.exists("app/static"):
-    app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-
-# Événements de démarrage et arrêt
-@app.on_event("startup")
-async def startup_event():
-    """Événement exécuté au démarrage de l'application"""
-    print("🚀 Démarrage de l'API de segmentation sémantique...")
-    print("📊 Modèle U-Net chargé avec succès")
-    print("✅ API prête à recevoir des requêtes")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Événement exécuté à l'arrêt de l'application"""
-    print("🛑 Arrêt de l'API de segmentation sémantique...")
-
-
-# Route racine redirige vers l'interface web
-@app.get("/")
-async def root():
-    """Route racine - redirige vers l'interface web"""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/web")
-
-# Route pour l'interface web
-@app.get("/web")
-async def web_interface():
-    """Interface web pour l'upload d'images"""
-    html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -116,6 +53,10 @@ async def web_interface():
         }
         .upload-btn:hover {
             background: #0056b3;
+        }
+        .upload-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
         }
         .preview {
             display: flex;
@@ -188,7 +129,7 @@ async def web_interface():
     </div>
 
     <script>
-        const API_BASE_URL = window.location.origin;
+        const API_BASE_URL = 'https://fx8r2pg0ml.execute-api.eu-west-3.amazonaws.com/production';
         
         // File input handling
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
@@ -250,7 +191,7 @@ async def web_interface():
 
             try {
                 // First, get the segmented image
-                const imageResponse = await fetch(`${API_BASE_URL}/api/segment`, {
+                const imageResponse = await fetch(`${API_BASE_URL}/segment`, {
                     method: 'POST',
                     body: formData
                 });
@@ -268,7 +209,7 @@ async def web_interface():
                 const imageStats = imageResponse.headers.get('X-Image-Stats');
 
                 // Then, get detailed stats
-                const statsResponse = await fetch(`${API_BASE_URL}/api/segment-with-stats`, {
+                const statsResponse = await fetch(`${API_BASE_URL}/segment-with-stats`, {
                     method: 'POST',
                     body: formData
                 });
@@ -325,6 +266,3 @@ ${JSON.stringify(stats.stats, null, 2)}
     </script>
 </body>
 </html>
-    """
-    from fastapi.responses import HTMLResponse
-    return HTMLResponse(content=html_content)
