@@ -24,6 +24,7 @@ async def info():
     """Endpoint d'information sur l'API et le modèle"""
     # Vérifier si le modèle existe
     from app.config import settings
+
     model_path = settings.MODEL_PATH
     model_exists = os.path.exists(model_path)
 
