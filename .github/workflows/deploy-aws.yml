@@ -87,7 +87,7 @@ jobs:
 
     - name: Build Lambda Docker image
       run: |
-        docker build -f Dockerfile.lambda -t ${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:latest .
+        docker build -f Dockerfile.lambda -t ${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:${{ env.ENVIRONMENT }} .
 
     - name: Login to Amazon ECR
       run: |
@@ -100,8 +100,8 @@ jobs:
 
     - name: Tag and push Docker image to ECR
       run: |
-        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:latest"
-        docker tag ${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:latest $ECR_URI
+        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:${{ env.ENVIRONMENT }}"
+        docker tag ${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:${{ env.ENVIRONMENT }} $ECR_URI
         docker push $ECR_URI
 
     - name: Check and fix CloudFormation stack

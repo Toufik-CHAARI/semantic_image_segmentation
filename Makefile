@@ -9,6 +9,11 @@ ENVIRONMENT ?= mvp
 AWS_REGION = eu-west-3
 AWS_ACCOUNT_ID = 024848440742
 
+# Environment validation
+ifeq ($(filter $(ENVIRONMENT),mvp staging production),)
+    $(error ENVIRONMENT must be one of: mvp, staging, production)
+endif
+
 # Installation des dépendances de test
 install-test:
 	@echo "Vérification des dépendances de test..."
@@ -352,7 +357,7 @@ help:
 	@echo "  make docker-build-lambda - Construire l'image Lambda"
 	@echo "  make docker-build-all - Construire toutes les images Docker"
 	@echo "  make docker-test-all - Tester toutes les images Docker"
-	@echo "  make docker-deploy-lambda - Construire et déployer Lambda (ENVIRONMENT=mvp)"
+	@echo "  make docker-deploy-lambda - Construire et déployer Lambda (ENVIRONMENT=mvp|staging|production)"
 	@echo "  make docker-push-ecr-lambda - Pousser l'image Lambda vers ECR"
 	@echo "  make docker-run        - Démarrer le conteneur"
 	@echo "  make docker-stop       - Arrêter le conteneur"

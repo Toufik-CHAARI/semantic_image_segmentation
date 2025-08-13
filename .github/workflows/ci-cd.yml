@@ -172,7 +172,7 @@ jobs:
         echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
     - name: Build Lambda Docker image
       run: |
-        docker build -f Dockerfile.lambda -t semantic-image-segmentation-api:latest .
+        docker build -f Dockerfile.lambda -t semantic-image-segmentation-api:staging .
     - name: Login to Amazon ECR
       run: |
         aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com
@@ -183,7 +183,7 @@ jobs:
     - name: Tag and push Docker image to ECR
       run: |
         ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:staging"
-        docker tag semantic-image-segmentation-api:latest $ECR_URI
+        docker tag semantic-image-segmentation-api:staging $ECR_URI
         docker push $ECR_URI
     - name: Check and fix CloudFormation stack
       run: |
@@ -248,24 +248,24 @@ jobs:
         echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
     - name: Build Lambda Docker image
       run: |
-        docker build -f Dockerfile.lambda -t semantic-image-segmentation-api:latest .
+        docker build -f Dockerfile.lambda -t production-semantic-image-segmentation-api:production .
     - name: Login to Amazon ECR
       run: |
         aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com
     - name: Create ECR repository (if not exists)
       run: |
-        aws ecr describe-repositories --repository-names "semantic-image-segmentation-api" --region eu-west-3 || \
-        aws ecr create-repository --repository-name "semantic-image-segmentation-api" --region eu-west-3
+        aws ecr describe-repositories --repository-names "production-semantic-image-segmentation-api" --region eu-west-3 || \
+        aws ecr create-repository --repository-name "production-semantic-image-segmentation-api" --region eu-west-3
     - name: Tag and push Docker image to ECR
       run: |
-        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:production"
-        docker tag semantic-image-segmentation-api:latest $ECR_URI
+        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/production-semantic-image-segmentation-api:production"
+        docker tag production-semantic-image-segmentation-api:production $ECR_URI
         docker push $ECR_URI
     - name: Check and fix CloudFormation stack
       run: |
         # Check stack status
         STACK_STATUS=$(aws cloudformation describe-stacks \
-          --stack-name semantic-image-segmentation-lambda-container-mvp \
+          --stack-name semantic-image-segmentation-lambda-container-production \
           --region eu-west-3 \
           --query 'Stacks[0].StackStatus' \
           --output text 2>/dev/null || echo "STACK_NOT_FOUND")
@@ -275,8 +275,8 @@ jobs:
         # Delete stack if in ROLLBACK_COMPLETE state
         if [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ]; then
           echo "Stack is in ROLLBACK_COMPLETE state. Deleting stack..."
-          aws cloudformation delete-stack --stack-name semantic-image-segmentation-lambda-container-mvp --region eu-west-3
-          aws cloudformation wait stack-delete-complete --stack-name semantic-image-segmentation-lambda-container-mvp --region eu-west-3
+          aws cloudformation delete-stack --stack-name semantic-image-segmentation-lambda-container-production --region eu-west-3
+          aws cloudformation wait stack-delete-complete --stack-name semantic-image-segmentation-lambda-container-production --region eu-west-3
           echo "Stack deleted successfully"
         fi
 
@@ -284,22 +284,22 @@ jobs:
       run: |
         aws cloudformation deploy \
           --template-file aws/lambda-container-deployment.yml \
-          --stack-name semantic-image-segmentation-lambda-container-mvp \
+          --stack-name semantic-image-segmentation-lambda-container-production \
           --parameter-overrides Environment=production \
           --capabilities CAPABILITY_NAMED_IAM \
-          --region eu-west-3 || (echo "CloudFormation deployment failed. Checking stack events..." && aws cloudformation describe-stack-events --stack-name semantic-image-segmentation-lambda-container-mvp --region eu-west-3 --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`]' --output table && exit 1)
+          --region eu-west-3 || (echo "CloudFormation deployment failed. Checking stack events..." && aws cloudformation describe-stack-events --stack-name semantic-image-segmentation-lambda-container-production --region eu-west-3 --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`]' --output table && exit 1)
         
     - name: Force Lambda function update
       run: |
         aws lambda update-function-code \
           --function-name production-semantic-image-segmentation-api \
-          --image-uri 024848440742.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:production \
+          --image-uri 024848440742.dkr.ecr.eu-west-3.amazonaws.com/production-semantic-image-segmentation-api:production \
           --region eu-west-3
     - name: Get API Gateway URL
       id: get-url
       run: |
         API_URL=$(aws cloudformation describe-stacks \
-          --stack-name semantic-image-segmentation-lambda-container-mvp \
+          --stack-name semantic-image-segmentation-lambda-container-production \
           --region eu-west-3 \
           --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
           --output text)
