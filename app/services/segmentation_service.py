@@ -29,24 +29,42 @@ class SegmentationService:
     def _download_model_from_s3(self):
         """Télécharge le modèle depuis S3 si il n'existe pas localement"""
         if not os.path.exists(settings.MODEL_PATH):
-            if not BOTO3_AVAILABLE:
-                raise ImportError(
-                    "boto3 is not available. Cannot download model from S3."
-                )
-
             try:
-                # Configuration S3
-                s3_client = boto3.client("s3")
-                bucket_name = os.getenv(
-                    "DVC_S3_BUCKET", "semantic-segmentation-models-1754924238"
-                )
-                model_key = "unet_best.keras"
+                # Try to use DVC first
+                try:
+                    print("Using DVC to download model...")
+                    # DVC will handle the S3 download automatically
+                    os.system("dvc pull model/unet_best.keras.dvc")
+                    print(
+                        f"Model downloaded successfully using DVC to "
+                        f"{settings.MODEL_PATH}"
+                    )
+                    return
+                except ImportError:
+                    print("DVC not available, falling back to direct S3 download...")
 
-                print(f"Downloading model from s3://{bucket_name}/{model_key}")
-                s3_client.download_file(bucket_name, model_key, settings.MODEL_PATH)
-                print(f"Model downloaded successfully to {settings.MODEL_PATH}")
+                # Fallback to direct S3 download
+                if not BOTO3_AVAILABLE:
+                    raise ImportError(
+                        "boto3 is not available. Cannot download model from S3."
+                    )
+
+                try:
+                    # Configuration S3
+                    s3_client = boto3.client("s3")
+                    bucket_name = os.getenv(
+                        "DVC_S3_BUCKET", "semantic-segmentation-models-1754924238"
+                    )
+                    model_key = "unet_best.keras"
+
+                    print(f"Downloading model from s3://{bucket_name}/{model_key}")
+                    s3_client.download_file(bucket_name, model_key, settings.MODEL_PATH)
+                    print(f"Model downloaded successfully to {settings.MODEL_PATH}")
+                except Exception as e:
+                    print(f"Failed to download model from S3: {e}")
+                    raise e
             except Exception as e:
-                print(f"Failed to download model from S3: {e}")
+                print(f"Failed to download model: {e}")
                 raise e
 
     @property
