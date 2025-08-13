@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get API Gateway URL from CloudFormation
-STACK_NAME="sentiment-analysis-lambda-container-mvp"
+STACK_NAME="semantic-image-segmentation-lambda-container-mvp"
 REGION="eu-west-3"
 
 echo "🔍 Getting API Gateway URL from CloudFormation stack..."

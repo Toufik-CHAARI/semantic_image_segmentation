@@ -5,7 +5,7 @@
 set -e
 
 # Variables
-IMAGE_NAME="sentiment-analysis-api"
+IMAGE_NAME="semantic-image-segmentation-api"
 TAG=${1:-latest}
 REGISTRY=${2:-""}
 

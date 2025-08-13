@@ -5,8 +5,8 @@ set -e
 
 ENVIRONMENT="mvp"
 REGION="eu-west-3"
-STACK_NAME="sentiment-analysis-lambda-container-mvp"
-REPO_NAME="${ENVIRONMENT}-sentiment-analysis-api"
+STACK_NAME="semantic-image-segmentation-lambda-container-mvp"
+REPO_NAME="${ENVIRONMENT}-semantic-image-segmentation-api"
 
 echo "🚀 Starting comprehensive deployment..."
 

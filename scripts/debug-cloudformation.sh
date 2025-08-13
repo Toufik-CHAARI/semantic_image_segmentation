@@ -3,7 +3,7 @@
 # Debug CloudFormation Deployment Issues
 set -e
 
-STACK_NAME="sentiment-analysis-lambda-container-mvp"
+STACK_NAME="semantic-image-segmentation-lambda-container-mvp"
 REGION="eu-west-3"
 
 echo "🔍 Debugging CloudFormation deployment..."

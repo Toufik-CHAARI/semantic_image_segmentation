@@ -4,10 +4,10 @@
 set -e
 
 echo "🐳 Building Docker test image..."
-docker build -f Dockerfile.test -t sentiment-analysis-api:test .
+docker build -f Dockerfile.test -t semantic-image-segmentation-api:test .
 
 echo "🚀 Starting container..."
-docker run -d --name test-container -p 8000:8000 sentiment-analysis-api:test
+docker run -d --name test-container -p 8000:8000 semantic-image-segmentation-api:test
 
 echo "⏳ Waiting for application to start..."
 sleep 20
@@ -57,6 +57,6 @@ fi
 echo "🧹 Cleaning up..."
 docker stop test-container
 docker rm test-container
-docker rmi sentiment-analysis-api:test
+docker rmi semantic-image-segmentation-api:test
 
 echo "�� All tests passed!" 

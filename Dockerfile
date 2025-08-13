@@ -57,6 +57,7 @@ COPY --from=builder /root/.local /home/appuser/.local
 # Copier uniquement les fichiers nécessaires pour la production
 COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser app/ ./app/
+COPY --chown=appuser:appuser lambda_function.py .
 COPY --chown=appuser:appuser model/ ./model/
 
 # Créer les répertoires nécessaires
