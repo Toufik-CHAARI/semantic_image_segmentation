@@ -3,7 +3,7 @@
 # Debug CloudFormation Deployment Issues
 set -e
 
-STACK_NAME="semantic-image-segmentation-lambda-container-mvp"
+STACK_NAME="semantic-image-segmentation-lambda-container-production"
 REGION="eu-west-3"
 
 echo "🔍 Debugging CloudFormation deployment..."
@@ -26,7 +26,7 @@ aws cloudformation describe-stack-events \
 echo ""
 echo "📦 Checking ECR repository..."
 aws ecr describe-repositories \
-  --repository-names "mvp-sentiment-analysis-api" \
+  --repository-names "production-semantic-image-segmentation-api" \
   --region $REGION \
   --query 'repositories[0].{Name:repositoryName,URI:repositoryUri}' \
   --output table 2>/dev/null || echo "ECR repository not found"
@@ -34,7 +34,7 @@ aws ecr describe-repositories \
 echo ""
 echo "🐳 Checking ECR images..."
 aws ecr describe-images \
-  --repository-name "mvp-sentiment-analysis-api" \
+  --repository-name "production-semantic-image-segmentation-api" \
   --region $REGION \
   --query 'imageDetails[].{Tag:imageTags[0],Size:imageSizeInBytes,PushedAt:imagePushedAt}' \
   --output table 2>/dev/null || echo "No images found in repository"
@@ -42,7 +42,7 @@ aws ecr describe-images \
 echo ""
 echo "🔑 Checking IAM roles..."
 aws iam get-role \
-  --role-name "mvp-sentiment-analysis-lambda-role" \
+  --role-name "production-semantic-image-segmentation-lambda-role" \
   --query 'Role.{Name:RoleName,Arn:Arn}' \
   --output table 2>/dev/null || echo "IAM role not found"
 
@@ -55,5 +55,9 @@ aws cloudformation describe-stack-events \
   --output table
 
 echo ""
-echo"PAI URL"
-aws cloudformation describe-stacks --stack-name semantic-image-segmentation-lambda-container-production --region eu-west-3 --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' --output text 
+echo "API URL :"
+aws cloudformation describe-stacks \
+ --stack-name semantic-image-segmentation-lambda-container-production \
+ --region eu-west-3 \
+ --query 'Stacks[0].Outputs[?OutputKey==`ApiGatewayUrl`].OutputValue' \
+ --output text 
