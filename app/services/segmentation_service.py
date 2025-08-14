@@ -1,3 +1,4 @@
+# app/services/segmentation_service.py
 import io
 import os
 from typing import Tuple
@@ -125,7 +126,11 @@ class SegmentationService:
 
     def segment_image(self, image_bytes: bytes) -> Tuple[bytes, dict]:
         """Effectue la segmentation d'une image et retourne le résultat encodé en PNG"""
-        print("Starting image segmentation...")
+        # print("Starting image segmentation...")
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info("Starting image segmentation...")
 
         # Prétraitement
         print("Preprocessing image...")
