@@ -201,9 +201,7 @@ class TestSegmentationService:
             patch("os.path.exists", return_value=False),
             patch("boto3.client") as mock_boto3,
             patch("os.getenv", return_value="test-bucket"),
-            patch(
-                "builtins.__import__", side_effect=ImportError("No module named 'dvc'")
-            ),
+            patch("os.system", side_effect=ImportError("No module named 'dvc'")),
         ):
             mock_s3_client = Mock()
             mock_boto3.return_value = mock_s3_client
@@ -276,9 +274,7 @@ class TestSegmentationService:
             patch("os.path.exists", return_value=False),
             patch("boto3.client") as mock_boto3,
             patch("os.getenv", return_value="test-bucket"),
-            patch(
-                "builtins.__import__", side_effect=ImportError("No module named 'dvc'")
-            ),
+            patch("os.system", side_effect=ImportError("No module named 'dvc'")),
         ):
             mock_s3_client = Mock()
             mock_boto3.return_value = mock_s3_client
