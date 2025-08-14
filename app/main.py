@@ -1,4 +1,4 @@
-#app/main.py
+# app/main.py
 import os
 
 from fastapi import FastAPI, Request
@@ -78,6 +78,7 @@ async def root(request: Request):
 def info():
     """Status info including whether the model is loaded"""
     from app.services.model_loader import is_model_loaded
+
     return {
         "status": "ok",
         "model_loaded": is_model_loaded(),
@@ -400,7 +401,6 @@ ${JSON.stringify(stats.stats, null, 2)}
 </html>
     """
 
-
     return HTMLResponse(
         content=html_content,
         headers={
@@ -409,7 +409,3 @@ ${JSON.stringify(stats.stats, null, 2)}
             "Expires": "0",
         },
     )
-
-
-
-
