@@ -41,6 +41,7 @@ if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
             else:
                 print("DVC setup failed, but continuing...")
                 print("Will attempt to load model directly if it exists")
+                print("Note: The setup script should have tried direct S3 download as fallback")
         else:
             print("Setup script not found, skipping DVC setup")
     except Exception as e:
