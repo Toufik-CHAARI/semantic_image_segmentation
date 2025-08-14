@@ -1,3 +1,4 @@
+#app/main.py
 import os
 
 from fastapi import FastAPI, Request
@@ -34,12 +35,10 @@ if os.path.exists("app/static"):
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
-# Événements de démarrage et arrêt
 @app.on_event("startup")
 async def startup_event():
     """Événement exécuté au démarrage de l'application"""
     print("🚀 Démarrage de l'API de segmentation sémantique...")
-    print("📊 Modèle U-Net chargé avec succès")
     print("✅ API prête à recevoir des requêtes")
 
 
@@ -49,15 +48,12 @@ async def shutdown_event():
     print("🛑 Arrêt de l'API de segmentation sémantique...")
 
 
-# Route racine - supporte HTML et JSON selon le type de requête
 @app.get("/")
 async def root(request: Request):
     """Route racine - retourne HTML pour les navigateurs, JSON pour les API"""
-    # Vérifier si c'est une requête de navigateur ou d'API
     user_agent = request.headers.get("user-agent", "").lower()
     accept_header = request.headers.get("accept", "").lower()
 
-    # Si c'est un navigateur ou demande HTML explicitement
     if (
         "mozilla" in user_agent
         or "chrome" in user_agent
@@ -66,18 +62,33 @@ async def root(request: Request):
         or "edge" in user_agent
         or "text/html" in accept_header
     ):
-        # Return the web interface directly instead of redirecting
         return get_web_interface_response()
 
-    # Sinon, retourner JSON pour les API
     return {
         "message": "Bienvenue sur l'API de segmentation sémantique Cityscapes",
-        "version": "1.0.0",
+        "version": settings.API_VERSION,
         "documentation": "/docs",
         "health_check": "/health",
         "info": "/info",
         "web_interface": "/web",
     }
+
+
+@app.get("/info")
+def info():
+    """Status info including whether the model is loaded"""
+    from app.services.model_loader import is_model_loaded
+    return {
+        "status": "ok",
+        "model_loaded": is_model_loaded(),
+        "version": settings.API_VERSION,
+    }
+
+
+@app.get("/web")
+async def web_interface():
+    """Interface web pour l'upload d'images"""
+    return get_web_interface_response()
 
 
 def get_web_interface_response():
@@ -388,6 +399,8 @@ ${JSON.stringify(stats.stats, null, 2)}
 </body>
 </html>
     """
+
+
     return HTMLResponse(
         content=html_content,
         headers={
@@ -398,8 +411,5 @@ ${JSON.stringify(stats.stats, null, 2)}
     )
 
 
-# Route pour l'interface web
-@app.get("/web")
-async def web_interface():
-    """Interface web pour l'upload d'images"""
-    return get_web_interface_response()
+
+

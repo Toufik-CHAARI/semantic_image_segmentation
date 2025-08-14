@@ -1,3 +1,4 @@
+# Dockerfile.lambda
 # Lambda Container Image for Semantic Image Segmentation API
 FROM public.ecr.aws/lambda/python:3.12
 
@@ -6,6 +7,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
+
+ENV TF_CPP_MIN_LOG_LEVEL=2 \
+    JOBLIB_TEMP_FOLDER=/tmp \
+    HF_HOME=/tmp/hf \
+    TRANSFORMERS_CACHE=/tmp/hf \
+    HF_DATASETS_CACHE=/tmp/hf \
+    XDG_CACHE_HOME=/tmp/hf
+RUN mkdir -p /tmp/hf
 
 # Install system dependencies required for OpenCV
 RUN microdnf update -y && microdnf install -y \
@@ -21,16 +30,15 @@ RUN microdnf update -y && microdnf install -y \
 COPY requirements-lambda.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+
 # Copy application code
 COPY app.py .
 COPY lambda_function.py .
 COPY app/ ./app/
 COPY model/ ./model/
-COPY .dvc/ ./.dvc/
-COPY scripts/ ./scripts/
 
-# Make scripts executable
-RUN chmod +x scripts/setup_dvc_lambda.sh
+
+
 
 # Set environment variables for Lambda
 ENV LOG_LEVEL=info \

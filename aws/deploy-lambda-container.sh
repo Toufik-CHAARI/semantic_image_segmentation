@@ -1,3 +1,4 @@
+# aws/deploy-lambda-container.sh
 #!/bin/bash
 
 # Lambda Container Deployment Script for Sentiment Analysis API MVP

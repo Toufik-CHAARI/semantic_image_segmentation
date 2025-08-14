@@ -1,3 +1,4 @@
+# Dockerfile
 # Multi-stage build pour optimiser la taille de l'image
 FROM python:3.12-slim AS builder
 

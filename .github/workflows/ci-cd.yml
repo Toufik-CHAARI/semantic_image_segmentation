@@ -1,3 +1,4 @@
+# .github/workflows/ci-cd.yml
 name: CI/CD Pipeline
 
 on:
@@ -180,11 +181,11 @@ jobs:
         aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com
     - name: Create ECR repository (if not exists)
       run: |
-        aws ecr describe-repositories --repository-names "semantic-image-segmentation-api" --region eu-west-3 || \
-        aws ecr create-repository --repository-name "semantic-image-segmentation-api" --region eu-west-3
+        aws ecr describe-repositories --repository-names "staging-semantic-image-segmentation-api" --region eu-west-3 || \
+        aws ecr create-repository --repository-name "staging-semantic-image-segmentation-api" --region eu-west-3
     - name: Tag and push Docker image to ECR
       run: |
-        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/semantic-image-segmentation-api:staging"
+        ECR_URI="${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com/staging-semantic-image-segmentation-api:staging"
         docker tag semantic-image-segmentation-api:staging $ECR_URI
         docker push $ECR_URI
     - name: Check and fix CloudFormation stack

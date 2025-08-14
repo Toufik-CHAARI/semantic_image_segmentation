@@ -1,3 +1,4 @@
+# main_lambda.py
 """
 Main Lambda handler for Semantic Image Segmentation API
 """
