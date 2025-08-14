@@ -108,30 +108,54 @@ class SegmentationService:
     def preprocess_image(self, image_bytes: bytes) -> np.ndarray:
         """Prétraite une image à partir de bytes"""
         try:
+            print(f"Preprocessing image of {len(image_bytes)} bytes")
             img = Image.open(io.BytesIO(image_bytes))
+            print(f"Image opened successfully: {img.size} {img.mode}")
             img = img.convert("RGB")
             img_array = np.array(img)
+            print(f"Image converted to array: {img_array.shape}")
             img_resized = cv2.resize(img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0]))
+            print(f"Image resized to: {img_resized.shape}")
             return img_resized.astype(np.float32) / 255.0
         except Exception as e:
+            print(f"Error in preprocess_image: {e}")
             raise Exception(f"Error preprocessing image: {str(e)}")
 
     def segment_image(self, image_bytes: bytes) -> Tuple[bytes, dict]:
         """Effectue la segmentation d'une image et retourne le résultat encodé en PNG"""
+        print("Starting image segmentation...")
+
         # Prétraitement
+        print("Preprocessing image...")
         x = self.preprocess_image(image_bytes)[None, ...]
+        print(f"Preprocessed image shape: {x.shape}")
 
         # Prédiction
-        out = self.model.predict(x)[0]  # (H,W,8)
+        print("Loading model for prediction...")
+        model = self.model
+        print(f"Model loaded: {type(model)}")
+
+        print("Running prediction...")
+        out = model.predict(x)[0]  # (H,W,8)
+        print(f"Prediction output shape: {out.shape}")
+
         ids = np.argmax(out, -1).astype(np.uint8)
+        print(f"Segmentation IDs shape: {ids.shape}")
+
         color = self.PALETTE[ids]
+        print(f"Color image shape: {color.shape}")
 
         # Encodage PNG en mémoire
+        print("Encoding PNG...")
         _, buf = cv2.imencode(".png", cv2.cvtColor(color, cv2.COLOR_RGB2BGR))
+        print(f"PNG encoded, size: {len(buf.tobytes())} bytes")
 
         # Statistiques de segmentation
+        print("Calculating statistics...")
         stats = self._get_segmentation_stats(ids)
+        print(f"Statistics calculated: {stats}")
 
+        print("Segmentation completed successfully")
         return buf.tobytes(), stats
 
     def _get_segmentation_stats(self, segmentation_ids: np.ndarray) -> dict:
