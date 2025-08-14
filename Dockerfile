@@ -59,9 +59,14 @@ COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser lambda_function.py .
 COPY --chown=appuser:appuser model/ ./model/
+COPY --chown=appuser:appuser .dvc/ ./.dvc/
+COPY --chown=appuser:appuser scripts/ ./scripts/
 
 # Créer les répertoires nécessaires
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app
+
+# Make scripts executable
+RUN chmod +x scripts/setup_dvc_lambda.sh
 
 # Créer un cache HuggingFace accessible
 RUN mkdir -p /app/cache && chown -R appuser:appuser /app/cache

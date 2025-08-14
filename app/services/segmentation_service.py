@@ -77,15 +77,22 @@ class SegmentationService:
         """Charge le modèle de manière lazy"""
         if self._model is None:
             try:
+                print(f"Loading model from: {settings.MODEL_PATH}")
+                print(f"Model file exists: {os.path.exists(settings.MODEL_PATH)}")
+
                 # Télécharger le modèle depuis S3 si nécessaire
                 self._download_model_from_s3()
 
+                print(f"Loading TensorFlow model from: {settings.MODEL_PATH}")
                 self._model = tf.keras.models.load_model(
                     settings.MODEL_PATH, compile=False
                 )
+                print("Model loaded successfully")
             except Exception as e:
+                print(f"Error loading model: {e}")
                 # En mode test, on peut utiliser un mock ou lever une exception
                 if os.getenv("TEST_MODE", "false").lower() == "true":
+                    print("Using mock model for test mode")
                     # Créer un modèle mock pour les tests
                     from unittest.mock import Mock
 
@@ -100,9 +107,14 @@ class SegmentationService:
 
     def preprocess_image(self, image_bytes: bytes) -> np.ndarray:
         """Prétraite une image à partir de bytes"""
-        img = np.array(Image.open(io.BytesIO(image_bytes)).convert("RGB"))
-        img = cv2.resize(img, (self.IMG_SIZE[1], self.IMG_SIZE[0]))
-        return img.astype(np.float32) / 255.0
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+            img = img.convert("RGB")
+            img_array = np.array(img)
+            img_resized = cv2.resize(img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0]))
+            return img_resized.astype(np.float32) / 255.0
+        except Exception as e:
+            raise Exception(f"Error preprocessing image: {str(e)}")
 
     def segment_image(self, image_bytes: bytes) -> Tuple[bytes, dict]:
         """Effectue la segmentation d'une image et retourne le résultat encodé en PNG"""

@@ -26,6 +26,11 @@ COPY app.py .
 COPY lambda_function.py .
 COPY app/ ./app/
 COPY model/ ./model/
+COPY .dvc/ ./.dvc/
+COPY scripts/ ./scripts/
+
+# Make scripts executable
+RUN chmod +x scripts/setup_dvc_lambda.sh
 
 # Set environment variables for Lambda
 ENV LOG_LEVEL=info \

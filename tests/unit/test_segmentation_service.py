@@ -177,7 +177,7 @@ class TestSegmentationService:
             service._download_model_from_s3()
 
             mock_s3_client.download_file.assert_called_once_with(
-                "test-bucket", "unet_best.keras", "unet_best.keras"
+                "test-bucket", "unet_best.keras", "model/unet_best.keras"
             )
 
     def test_download_model_from_s3_file_exists(self, service):
@@ -209,7 +209,7 @@ class TestSegmentationService:
             service._download_model_from_s3()
 
             mock_s3_client.download_file.assert_called_once_with(
-                "test-bucket", "unet_best.keras", "unet_best.keras"
+                "test-bucket", "unet_best.keras", "model/unet_best.keras"
             )
 
     def test_model_property_with_test_mode(self, service):
@@ -282,7 +282,7 @@ class TestSegmentationService:
             service._download_model_from_s3()
 
             mock_s3_client.download_file.assert_called_once_with(
-                "test-bucket", "unet_best.keras", "unet_best.keras"
+                "test-bucket", "unet_best.keras", "model/unet_best.keras"
             )
 
     def test_download_model_from_s3_error(self, service):
@@ -315,7 +315,7 @@ class TestSegmentationService:
             result = service.model
 
             mock_download.assert_called_once()
-            mock_load.assert_called_once_with("unet_best.keras", compile=False)
+            mock_load.assert_called_once_with("model/unet_best.keras", compile=False)
             assert result == mock_model
 
     def test_model_property_without_s3_download(self, service):
@@ -332,5 +332,5 @@ class TestSegmentationService:
 
             result = service.model
 
-            mock_load.assert_called_once_with("unet_best.keras", compile=False)
+            mock_load.assert_called_once_with("model/unet_best.keras", compile=False)
             assert result == mock_model

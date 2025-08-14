@@ -46,8 +46,8 @@ jobs:
     
     - name: Setup DVC remote
       run: |
-        dvc remote add s3-remote s3://${{ secrets.DVC_S3_BUCKET }}/models --default
-        dvc remote modify s3-remote region ${{ secrets.AWS_REGION }}
+        dvc remote add myremote s3://${{ secrets.DVC_S3_BUCKET }} || true
+        dvc remote modify myremote region ${{ secrets.AWS_REGION }}
     
     - name: Push to DVC remote
       run: |
@@ -93,8 +93,8 @@ jobs:
     
     - name: Setup DVC remote
       run: |
-        dvc remote add s3-remote s3://${{ secrets.DVC_S3_BUCKET }}/models --default
-        dvc remote modify s3-remote region ${{ secrets.AWS_REGION }}
+        dvc remote add myremote s3://${{ secrets.DVC_S3_BUCKET }} || true
+        dvc remote modify myremote region ${{ secrets.AWS_REGION }}
     
     - name: Pull from DVC remote
       run: |

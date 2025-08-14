@@ -25,6 +25,7 @@ Resources:
           ENVIRONMENT: !Ref Environment
           LOG_LEVEL: info
           DVC_S3_BUCKET: semantic-segmentation-models-1754924238
+          TEST_MODE: "false"
 
   # Lambda Execution Role
   LambdaExecutionRole:
