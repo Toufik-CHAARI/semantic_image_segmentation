@@ -12,7 +12,6 @@ from app.config import settings
 
 # Import boto3 conditionally for AWS Lambda environment
 try:
-    import boto3
 
     BOTO3_AVAILABLE = True
 except ImportError:
@@ -27,51 +26,13 @@ class SegmentationService:
         self.CLASS_NAMES = settings.CLASS_NAMES
         self._model = None
 
-    def _download_model_from_s3(self):
-        """Télécharge le modèle depuis S3 si il n'existe pas localement"""
+    def _check_model_exists(self):
+        """Vérifie que le modèle existe dans l'image Docker"""
         if not os.path.exists(settings.MODEL_PATH):
-            try:
-                # Try to use DVC first
-                try:
-                    print("Using DVC to download model...")
-                    # DVC will handle the S3 download automatically
-                    result = os.system("dvc pull model/unet_best.keras.dvc")
-                    if result == 0:
-                        print(
-                            f"Model downloaded successfully using DVC to "
-                            f"{settings.MODEL_PATH}"
-                        )
-                        return
-                    else:
-                        print(
-                            "DVC command failed, falling back to direct S3 download..."
-                        )
-                except ImportError:
-                    print("DVC not available, falling back to direct S3 download...")
-
-                # Fallback to direct S3 download
-                if not BOTO3_AVAILABLE:
-                    raise ImportError(
-                        "boto3 is not available. Cannot download model from S3."
-                    )
-
-                try:
-                    # Configuration S3
-                    s3_client = boto3.client("s3")
-                    bucket_name = os.getenv(
-                        "DVC_S3_BUCKET", "semantic-segmentation-models-1754924238"
-                    )
-                    model_key = "unet_best.keras"
-
-                    print(f"Downloading model from s3://{bucket_name}/{model_key}")
-                    s3_client.download_file(bucket_name, model_key, settings.MODEL_PATH)
-                    print(f"Model downloaded successfully to {settings.MODEL_PATH}")
-                except Exception as e:
-                    print(f"Failed to download model from S3: {e}")
-                    raise e
-            except Exception as e:
-                print(f"Failed to download model: {e}")
-                raise e
+            raise FileNotFoundError(
+                f"Model file not found at {settings.MODEL_PATH}. "
+                "The model should be included in the Docker image."
+            )
 
     @property
     def model(self):
@@ -81,8 +42,8 @@ class SegmentationService:
                 print(f"Loading model from: {settings.MODEL_PATH}")
                 print(f"Model file exists: {os.path.exists(settings.MODEL_PATH)}")
 
-                # Télécharger le modèle depuis S3 si nécessaire
-                self._download_model_from_s3()
+                # Vérifier que le modèle existe dans l'image Docker
+                self._check_model_exists()
 
                 print(f"Loading TensorFlow model from: {settings.MODEL_PATH}")
                 self._model = tf.keras.models.load_model(
@@ -91,12 +52,10 @@ class SegmentationService:
                 print("Model loaded successfully")
             except Exception as e:
                 print(f"Error loading model: {e}")
-                # En mode test ou Lambda, on peut utiliser un mock
-                if os.getenv("TEST_MODE", "false").lower() == "true" or os.getenv(
-                    "AWS_LAMBDA_FUNCTION_NAME"
-                ):
-                    print("Using mock model for test/Lambda mode")
-                    # Créer un modèle mock pour les tests/Lambda
+                # En mode test, on peut utiliser un mock
+                if os.getenv("TEST_MODE", "false").lower() == "true":
+                    print("Using mock model for test mode")
+                    # Créer un modèle mock pour les tests
                     from unittest.mock import Mock
 
                     mock_model = Mock()

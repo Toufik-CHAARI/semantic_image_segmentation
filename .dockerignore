@@ -78,8 +78,8 @@ aws/
 # DVC
 .dvcignore
 
-# Model files (downloaded from S3 at runtime)
-model/*.keras
+# Model files are now included in the Docker image
+# model/*.keras
 
 # MLflow
 MLflowStore/

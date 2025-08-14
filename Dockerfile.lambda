@@ -37,6 +37,9 @@ COPY lambda_function.py .
 COPY app/ ./app/
 COPY model/ ./model/
 
+# Verify model file is included
+RUN ls -la model/ && echo "Model file size:" && du -h model/unet_best.keras
+
 
 
 

@@ -63,6 +63,9 @@ COPY --chown=appuser:appuser model/ ./model/
 COPY --chown=appuser:appuser .dvc/ ./.dvc/
 COPY --chown=appuser:appuser scripts/ ./scripts/
 
+# Verify model file is included
+RUN ls -la model/ && echo "Model file size:" && du -h model/unet_best.keras
+
 # Créer les répertoires nécessaires
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app
 
