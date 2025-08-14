@@ -74,10 +74,8 @@ docker-compose*
 
 # AWS
 aws/
-scripts/
 
 # DVC
-.dvc/
 .dvcignore
 
 # Model files (downloaded from S3 at runtime)
