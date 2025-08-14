@@ -19,8 +19,10 @@ os.makedirs("/tmp/hf", exist_ok=True)
 # Set DVC environment variables for Lambda
 os.environ["DVC_TEMP_DIR"] = "/tmp/dvc-temp"
 os.environ["DVC_CACHE_DIR"] = "/tmp/dvc-cache"
+os.environ["DVC_CONFIG"] = "/tmp/.dvc/config"
 os.makedirs("/tmp/dvc-temp", exist_ok=True)
 os.makedirs("/tmp/dvc-cache", exist_ok=True)
+os.makedirs("/tmp/.dvc", exist_ok=True)
 
 # Set up DVC and download model if in Lambda environment
 if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
