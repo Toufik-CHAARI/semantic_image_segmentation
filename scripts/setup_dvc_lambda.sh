@@ -32,6 +32,13 @@ if [ -n "$AWS_LAMBDA_FUNCTION_NAME" ]; then
         exit 1
     fi
     
+    # Configure DVC to use /tmp for temporary files
+    log_info "Configuring DVC to use /tmp directory..."
+    export DVC_TEMP_DIR="/tmp/dvc-temp"
+    export DVC_CACHE_DIR="/tmp/dvc-cache"
+    mkdir -p "$DVC_TEMP_DIR"
+    mkdir -p "$DVC_CACHE_DIR"
+    
     # Ensure DVC remote is configured
     if ! dvc remote list | grep -q "myremote"; then
         log_info "Setting up DVC remote..."

@@ -90,10 +90,12 @@ class SegmentationService:
                 print("Model loaded successfully")
             except Exception as e:
                 print(f"Error loading model: {e}")
-                # En mode test, on peut utiliser un mock ou lever une exception
-                if os.getenv("TEST_MODE", "false").lower() == "true":
-                    print("Using mock model for test mode")
-                    # Créer un modèle mock pour les tests
+                # En mode test ou Lambda, on peut utiliser un mock
+                if os.getenv("TEST_MODE", "false").lower() == "true" or os.getenv(
+                    "AWS_LAMBDA_FUNCTION_NAME"
+                ):
+                    print("Using mock model for test/Lambda mode")
+                    # Créer un modèle mock pour les tests/Lambda
                     from unittest.mock import Mock
 
                     mock_model = Mock()

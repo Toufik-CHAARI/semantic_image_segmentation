@@ -258,7 +258,12 @@ class TestSegmentationService:
         """Test de la propriété model sans mode test (exception raised)"""
         with (
             patch("os.path.exists", return_value=True),  # File exists
-            patch("os.getenv", return_value="false"),  # TEST_MODE=false
+            patch(
+                "os.getenv",
+                side_effect=lambda key, default=None: (
+                    "false" if key == "TEST_MODE" else default
+                ),
+            ),  # TEST_MODE=false, others default
             patch(
                 "app.services.segmentation_service.tf.keras.models.load_model"
             ) as mock_load,

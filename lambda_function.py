@@ -16,6 +16,12 @@ from app.main import app
 # Ensure cache directories exist
 os.makedirs("/tmp/hf", exist_ok=True)
 
+# Set DVC environment variables for Lambda
+os.environ["DVC_TEMP_DIR"] = "/tmp/dvc-temp"
+os.environ["DVC_CACHE_DIR"] = "/tmp/dvc-cache"
+os.makedirs("/tmp/dvc-temp", exist_ok=True)
+os.makedirs("/tmp/dvc-cache", exist_ok=True)
+
 # Set up DVC and download model if in Lambda environment
 if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
     print("Lambda environment detected, setting up DVC and model...")
@@ -32,11 +38,13 @@ if os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
                 print("DVC setup completed successfully")
             else:
                 print("DVC setup failed, but continuing...")
+                print("Will attempt to load model directly if it exists")
         else:
             print("Setup script not found, skipping DVC setup")
     except Exception as e:
         print(f"Error during DVC setup: {e}")
         print("Continuing without DVC setup...")
+        print("Will attempt to load model directly if it exists")
 
 # Create Mangum handler
 handler = Mangum(app, lifespan="off") 
