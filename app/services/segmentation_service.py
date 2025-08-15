@@ -72,7 +72,7 @@ class SegmentationService:
         """Prétraite une image à partir de bytes"""
         try:
             print(f"Preprocessing image of {len(image_bytes)} bytes")
-            
+
             # Try multiple approaches for Lambda compatibility
             try:
                 # Method 1: Direct PIL approach
@@ -91,10 +91,12 @@ class SegmentationService:
                     img_array = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                     img_array = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
                     print(f"Image opened successfully with cv2: {img_array.shape}")
-                    img_resized = cv2.resize(img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0]))
+                    img_resized = cv2.resize(
+                        img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0])
+                    )
                     print(f"Image resized to: {img_resized.shape}")
                     return img_resized.astype(np.float32) / 255.0
-            
+
             print(f"Image opened successfully: {img.size} {img.mode}")
             img = img.convert("RGB")
             img_array = np.array(img)
