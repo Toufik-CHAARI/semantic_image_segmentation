@@ -29,6 +29,9 @@ RUN microdnf update -y && microdnf install -y \
     libXrender \
     libgomp \
     mesa-libGL \
+    mesa-libGLU \
+    libglvnd-glx \
+    libglvnd-opengl \
     git \
     && microdnf clean all
 
