@@ -25,8 +25,10 @@ Resources:
         Variables:
           ENVIRONMENT: !Ref Environment
           LOG_LEVEL: info
+          LAMBDA_MODE: "true"
+          HOST: "0.0.0.0"
+          PORT: "8000"
           DVC_S3_BUCKET: semantic-segmentation-models-1754924238
-          TEST_MODE: "false"
 
   # Lambda Execution Role
   LambdaExecutionRole:

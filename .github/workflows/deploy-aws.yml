@@ -173,9 +173,9 @@ jobs:
           
           Test your API:
           \`\`\`bash
-          curl -X POST "${{ steps.get-url.outputs.api_url }}/segment" \\
-               -H "Content-Type: application/json" \\
-               -d '{"file": "path/to/image.jpg"}'
+          curl -X POST "${{ steps.get-url.outputs.api_url }}/api/segment" \\
+               -H "Content-Type: multipart/form-data" \\
+               -F "file=@path/to/image.jpg"
           \`\`\`
           
           **Cost**: ~$0.60/month for MVP usage`

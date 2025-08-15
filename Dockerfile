@@ -60,17 +60,12 @@ COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser lambda_function.py .
 COPY --chown=appuser:appuser model/ ./model/
-COPY --chown=appuser:appuser .dvc/ ./.dvc/
-COPY --chown=appuser:appuser scripts/ ./scripts/
 
 # Verify model file is included
 RUN ls -la model/ && echo "Model file size:" && du -h model/unet_best.keras
 
 # Créer les répertoires nécessaires
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app
-
-# Make scripts executable
-RUN chmod +x scripts/setup_dvc_lambda.sh
 
 # Créer un cache HuggingFace accessible
 RUN mkdir -p /app/cache && chown -R appuser:appuser /app/cache
@@ -92,7 +87,6 @@ EXPOSE 8000
 # Variables d'environnement pour la production
 ENV HOST=0.0.0.0 \
     PORT=8000 \
-    WORKERS=4 \
     LOG_LEVEL=info
 
 # Health check

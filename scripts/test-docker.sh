@@ -1,62 +1,64 @@
 #!/bin/bash
 
-# Test Docker Container Script
+# Test script for Docker containers
 set -e
 
-echo "🐳 Building Docker test image..."
-docker build -f Dockerfile.test -t semantic-image-segmentation-api:test .
+echo "🧪 Testing Docker containers..."
 
-echo "🚀 Starting container..."
-docker run -d --name test-container -p 8000:8000 semantic-image-segmentation-api:test
+# Test production container
+echo "📦 Testing production container..."
+docker build -t semantic-image-segmentation-api:test .
 
-echo "⏳ Waiting for application to start..."
-sleep 20
+# Start container
+docker run -d --name test-prod -p 8000:8000 semantic-image-segmentation-api:test
 
-echo "🔍 Checking if container is running..."
-if ! docker ps | grep -q test-container; then
-    echo "❌ Container is not running!"
-    echo "📋 Container logs:"
-    docker logs test-container
-    exit 1
-fi
+# Wait for startup
+sleep 15
 
-echo "✅ Container is running"
+# Test endpoints
+echo "🔍 Testing endpoints..."
 
-echo "🏥 Testing health endpoint..."
-if curl -f http://localhost:8000/health; then
-    echo "✅ Health check passed"
+# Test root endpoint
+if curl -f http://localhost:8000/ > /dev/null 2>&1; then
+    echo "✅ Root endpoint works"
 else
-    echo "❌ Health check failed"
-    echo "📋 Container logs:"
-    docker logs test-container
+    echo "❌ Root endpoint failed"
+    docker logs test-prod
     exit 1
 fi
 
-echo "ℹ️  Testing info endpoint..."
-if curl -f http://localhost:8000/info; then
-    echo "✅ Info check passed"
+# Test health endpoint
+if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+    echo "✅ Health endpoint works"
 else
-    echo "❌ Info check failed"
-    echo "📋 Container logs:"
-    docker logs test-container
+    echo "❌ Health endpoint failed"
+    docker logs test-prod
     exit 1
 fi
 
-echo "🧠 Testing sentiment endpoint..."
-if curl -X POST http://localhost:8000/predict-sentiment/ \
-    -H "Content-Type: application/json" \
-    -d '{"text": "I really enjoyed this movie!"}'; then
-    echo "✅ Sentiment check passed"
+# Test info endpoint
+if curl -f http://localhost:8000/info > /dev/null 2>&1; then
+    echo "✅ Info endpoint works"
 else
-    echo "❌ Sentiment check failed"
-    echo "📋 Container logs:"
-    docker logs test-container
+    echo "❌ Info endpoint failed"
+    docker logs test-prod
     exit 1
 fi
 
-echo "🧹 Cleaning up..."
-docker stop test-container
-docker rm test-container
+# Test segment endpoint with test image
+if curl -X POST http://localhost:8000/api/segment \
+    -H "Content-Type: multipart/form-data" \
+    -F "file=@test_image.png" > /dev/null 2>&1; then
+    echo "✅ Segment endpoint works"
+else
+    echo "❌ Segment endpoint failed"
+    docker logs test-prod
+    exit 1
+fi
+
+# Cleanup
+docker stop test-prod
+docker rm test-prod
 docker rmi semantic-image-segmentation-api:test
 
 echo "�� All tests passed!" 

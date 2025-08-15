@@ -48,8 +48,7 @@ RUN ls -la model/ && echo "Model file size:" && du -h model/unet_best.keras
 # Create a simple pytest configuration
 RUN printf '[tool:pytest]\ntestpaths = tests\npython_files = test_*.py\npython_classes = Test*\npython_functions = test_*\naddopts = -v --tb=short --strict-markers --disable-warnings --color=yes\nmarkers =\n    unit: Tests unitaires\n    integration: Tests d integration\n    slow: Tests lents\n    fast: Tests rapides\nfilterwarnings =\n    ignore::DeprecationWarning\n    ignore::PendingDeprecationWarning\n    ignore::UserWarning\n' > pytest.ini
 
-# Make scripts executable
-RUN chmod +x scripts/setup_dvc_lambda.sh
+
 
 # Set environment for testing
 ENV LOG_LEVEL=info \

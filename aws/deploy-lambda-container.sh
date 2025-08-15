@@ -1,7 +1,7 @@
 # aws/deploy-lambda-container.sh
 #!/bin/bash
 
-# Lambda Container Deployment Script for Sentiment Analysis API MVP
+# Lambda Container Deployment Script for Semantic Image Segmentation API MVP
 # Usage: ./deploy-lambda-container.sh [environment] [region]
 
 set -e
@@ -94,9 +94,9 @@ echo "🎉 Deployment successful!"
 echo "📡 API Gateway URL: $API_URL"
 echo ""
 echo "🧪 Test your API:"
-echo "curl -X POST \"$API_URL/predict-sentiment/\" \\"
-echo "     -H \"Content-Type: application/json\" \\"
-echo "     -d '{\"text\": \"I really enjoyed this movie!\"}'"
+echo "curl -X POST \"$API_URL/api/segment\" \\"
+echo "     -H \"Content-Type: multipart/form-data\" \\"
+echo "     -F \"file=@path/to/image.jpg\""
 echo ""
 echo "🗑️ To delete the stack:"
 echo "aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION" 

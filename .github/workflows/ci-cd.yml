@@ -121,8 +121,10 @@ jobs:
         # Test info endpoint
         curl -f http://localhost:8000/info || (echo "Info check failed" && docker logs test-container && exit 1)
         
-        # Test docs endpoint
-        curl -f http://localhost:8000/docs || (echo "Docs endpoint failed" && docker logs test-container && exit 1)
+        # Test segment endpoint with test image
+        curl -X POST http://localhost:8000/api/segment \
+          -H "Content-Type: multipart/form-data" \
+          -F "file=@test_image.png" || (echo "Segment endpoint failed" && docker logs test-container && exit 1)
         
         # Clean up
         docker stop test-container

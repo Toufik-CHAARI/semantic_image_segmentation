@@ -45,11 +45,12 @@ class SegmentationService:
                 # Vérifier que le modèle existe dans l'image Docker
                 self._check_model_exists()
 
-                print(f"Loading TensorFlow model from: {settings.MODEL_PATH}")
+                # Load the model
                 self._model = tf.keras.models.load_model(
                     settings.MODEL_PATH, compile=False
                 )
                 print("Model loaded successfully")
+
             except Exception as e:
                 print(f"Error loading model: {e}")
                 # En mode test, on peut utiliser un mock
@@ -97,7 +98,6 @@ class SegmentationService:
         print(f"Preprocessed image shape: {x.shape}")
 
         # Prédiction
-        print("Loading model for prediction...")
         model = self.model
         print(f"Model loaded: {type(model)}")
 
