@@ -67,6 +67,58 @@ class TestSegmentationService:
         with pytest.raises(Exception):
             service.preprocess_image(b"invalid_image_data")
 
+    def test_preprocess_image_pil_fallback(self, service):
+        """Test du prétraitement avec fallback PIL -> cv2"""
+        # Create a valid image but mock PIL to fail
+        img = Image.new("RGB", (100, 100), color="blue")
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format="PNG")
+        image_bytes = img_bytes.getvalue()
+
+        with patch("PIL.Image.open", side_effect=Exception("PIL failed")):
+            result = service.preprocess_image(image_bytes)
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == (256, 512, 3)
+        assert result.dtype == np.float32
+        assert result.min() >= 0.0
+        assert result.max() <= 1.0
+
+    def test_preprocess_image_pil_and_numpy_fallback(self, service):
+        """Test du prétraitement avec fallback PIL -> numpy -> cv2 direct"""
+        # Create a valid image but mock both PIL and numpy to fail
+        img = Image.new("RGB", (100, 100), color="green")
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format="PNG")
+        image_bytes = img_bytes.getvalue()
+
+        with (
+            patch("PIL.Image.open", side_effect=Exception("PIL failed")),
+            patch("numpy.frombuffer", side_effect=Exception("numpy failed")),
+        ):
+            with pytest.raises(Exception):
+                service.preprocess_image(image_bytes)
+
+    def test_preprocess_image_cv2_direct_success(self, service):
+        """Test du prétraitement avec cv2 direct (Method 3)"""
+        # Create a valid image
+        img = Image.new("RGB", (100, 100), color="yellow")
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format="PNG")
+        image_bytes = img_bytes.getvalue()
+
+        with (
+            patch("PIL.Image.open", side_effect=Exception("PIL failed")),
+            patch("PIL.Image.fromarray", side_effect=Exception("PIL fromarray failed")),
+        ):
+            result = service.preprocess_image(image_bytes)
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == (256, 512, 3)
+        assert result.dtype == np.float32
+        assert result.min() >= 0.0
+        assert result.max() <= 1.0
+
     def test_get_segmentation_stats(self, service):
         """Test du calcul des statistiques de segmentation"""
         # Créer des données de test
