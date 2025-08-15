@@ -93,11 +93,23 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: eu-west-3
+      
     - name: Build Docker image
       run: |
         # Use .dockerignore.test for test build
         cp .dockerignore.test .dockerignore
-        docker build -f Dockerfile.test -t semantic-image-segmentation-api:test .
+        docker build \
+          --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+          --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+          --build-arg AWS_DEFAULT_REGION="eu-west-3" \
+          -f Dockerfile.test \
+          -t semantic-image-segmentation-api:test .
         # Restore original .dockerignore
         git checkout .dockerignore
         
@@ -177,7 +189,12 @@ jobs:
         echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
     - name: Build Lambda Docker image
       run: |
-        docker build -f Dockerfile.lambda -t semantic-image-segmentation-api:staging .
+        docker build \
+          --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+          --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+          --build-arg AWS_DEFAULT_REGION="eu-west-3" \
+          -f Dockerfile.lambda \
+          -t semantic-image-segmentation-api:staging .
     - name: Login to Amazon ECR
       run: |
         aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com
@@ -253,7 +270,12 @@ jobs:
         echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
     - name: Build Lambda Docker image
       run: |
-        docker build -f Dockerfile.lambda -t production-semantic-image-segmentation-api:production .
+        docker build \
+          --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+          --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+          --build-arg AWS_DEFAULT_REGION="eu-west-3" \
+          -f Dockerfile.lambda \
+          -t production-semantic-image-segmentation-api:production .
     - name: Login to Amazon ECR
       run: |
         aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin ${{ steps.aws-account.outputs.account_id }}.dkr.ecr.eu-west-3.amazonaws.com

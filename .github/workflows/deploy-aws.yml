@@ -92,7 +92,12 @@ jobs:
 
     - name: Build Lambda Docker image
       run: |
-        docker build -f Dockerfile.lambda -t ${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:${{ env.ENVIRONMENT }} .
+        docker build \
+          --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+          --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+          --build-arg AWS_DEFAULT_REGION="${{ env.AWS_REGION }}" \
+          -f Dockerfile.lambda \
+          -t ${{ env.ENVIRONMENT }}-semantic-image-segmentation-api:${{ env.ENVIRONMENT }} .
 
     - name: Login to Amazon ECR
       run: |
