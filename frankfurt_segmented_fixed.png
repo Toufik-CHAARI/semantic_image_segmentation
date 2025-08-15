@@ -1,0 +1,1 @@
+{"detail":"Erreur lors de la segmentation: Error preprocessing image: OpenCV(4.8.1) /io/opencv/modules/imgproc/src/color.cpp:182: error: (-215:Assertion failed) !_src.empty() in function 'cvtColor'\n"}

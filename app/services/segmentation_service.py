@@ -77,33 +77,49 @@ class SegmentationService:
             try:
                 # Method 1: Direct PIL approach
                 img = Image.open(io.BytesIO(image_bytes))
+                print(f"Image opened successfully with PIL: {img.size} {img.mode}")
+                img = img.convert("RGB")
+                img_array = np.array(img)
+                print(f"Image converted to array: {img_array.shape}")
+                img_resized = cv2.resize(
+                    img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0])
+                )
+                print(f"Image resized to: {img_resized.shape}")
+                return img_resized.astype(np.float32) / 255.0
             except Exception as e1:
-                print(f"Method 1 failed: {e1}")
+                print(f"Method 1 (PIL) failed: {e1}")
                 try:
                     # Method 2: Convert to numpy first, then to PIL
                     nparr = np.frombuffer(image_bytes, np.uint8)
                     img_array = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    if img_array is None:
+                        raise Exception("cv2.imdecode returned None")
+                    print(f"Image decoded with cv2: {img_array.shape}")
                     img = Image.fromarray(cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB))
-                except Exception as e2:
-                    print(f"Method 2 failed: {e2}")
-                    # Method 3: Use cv2 directly
-                    nparr = np.frombuffer(image_bytes, np.uint8)
-                    img_array = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                    img_array = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
-                    print(f"Image opened successfully with cv2: {img_array.shape}")
+                    print(f"Image converted to PIL: {img.size} {img.mode}")
+                    img = img.convert("RGB")
+                    img_array = np.array(img)
+                    print(f"Image converted to array: {img_array.shape}")
                     img_resized = cv2.resize(
                         img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0])
                     )
                     print(f"Image resized to: {img_resized.shape}")
                     return img_resized.astype(np.float32) / 255.0
-
-            print(f"Image opened successfully: {img.size} {img.mode}")
-            img = img.convert("RGB")
-            img_array = np.array(img)
-            print(f"Image converted to array: {img_array.shape}")
-            img_resized = cv2.resize(img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0]))
-            print(f"Image resized to: {img_resized.shape}")
-            return img_resized.astype(np.float32) / 255.0
+                except Exception as e2:
+                    print(f"Method 2 (cv2->PIL) failed: {e2}")
+                    # Method 3: Use cv2 directly
+                    nparr = np.frombuffer(image_bytes, np.uint8)
+                    img_array = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    if img_array is None:
+                        raise Exception("cv2.imdecode returned None")
+                    print(f"Image opened successfully with cv2: {img_array.shape}")
+                    img_array = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
+                    print(f"Image color converted: {img_array.shape}")
+                    img_resized = cv2.resize(
+                        img_array, (self.IMG_SIZE[1], self.IMG_SIZE[0])
+                    )
+                    print(f"Image resized to: {img_resized.shape}")
+                    return img_resized.astype(np.float32) / 255.0
         except Exception as e:
             print(f"Error in preprocess_image: {e}")
             raise Exception(f"Error preprocessing image: {str(e)}")
