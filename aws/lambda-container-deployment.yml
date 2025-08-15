@@ -29,6 +29,11 @@ Resources:
           HOST: "0.0.0.0"
           PORT: "8000"
           DVC_S3_BUCKET: semantic-segmentation-models-1754924238
+          TF_CPP_MIN_LOG_LEVEL: "2"
+          JOBLIB_TEMP_FOLDER: "/tmp"
+          HF_HOME: "/tmp/hf"
+          TRANSFORMERS_CACHE: "/tmp/hf"
+          XDG_CACHE_HOME: "/tmp/hf"
 
   # Lambda Execution Role
   LambdaExecutionRole:
