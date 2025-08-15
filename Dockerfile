@@ -2,6 +2,11 @@
 # Multi-stage build pour optimiser la taille de l'image
 FROM python:3.12-slim AS builder
 
+# Accept AWS credentials as build arguments for DVC
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ARG AWS_DEFAULT_REGION=eu-west-3
+
 # Définir les variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -12,6 +17,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Créer un utilisateur non-root pour la sécurité
@@ -29,6 +35,11 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Stage de production
 FROM python:3.12-slim AS production
 
+# Accept AWS credentials as build arguments for DVC
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ARG AWS_DEFAULT_REGION=eu-west-3
+
 # Définir les variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -43,6 +54,7 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
+    git \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -60,6 +72,31 @@ COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser lambda_function.py .
 COPY --chown=appuser:appuser model/ ./model/
+COPY --chown=appuser:appuser .dvc/ ./.dvc/
+
+# Initialize git repository for DVC (required for DVC to work) - do this as root
+RUN git init && \
+    git config user.email "docker@build.local" && \
+    git config user.name "Docker Build" && \
+    chown -R appuser:appuser /app
+
+# Changer vers l'utilisateur non-root
+USER appuser
+
+# Set AWS credentials for DVC (only during build)
+ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+ENV AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+ENV AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+
+# Pull the model using DVC from S3 (this ensures consistency with CI/CD pipeline)
+RUN dvc remote add myremote s3://semantic-segmentation-models-1754924238 --force || true && \
+    dvc remote modify myremote region eu-west-3 && \
+    dvc pull model/unet_best.keras.dvc
+
+# Clear AWS credentials from environment (security)
+ENV AWS_ACCESS_KEY_ID=
+ENV AWS_SECRET_ACCESS_KEY=
+ENV AWS_DEFAULT_REGION=
 
 # Verify model file is included
 RUN ls -la model/ && echo "Model file size:" && du -h model/unet_best.keras
@@ -77,9 +114,6 @@ ENV TRANSFORMERS_CACHE=/tmp/hf \
     TMPDIR=/tmp
 
 RUN mkdir -p /tmp/hf
-
-# Changer vers l'utilisateur non-root
-USER appuser
 
 # Exposer le port
 EXPOSE 8000
