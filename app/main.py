@@ -199,7 +199,8 @@ def get_web_interface_response():
         <h1>🎯 Semantic Image Segmentation</h1>
 
         <div class="upload-area" id="uploadArea">
-            <p>📁 Drag and drop an image here or click to select</p>
+            <p>📁 Faites glisser et déposez une image ici ou
+            cliquez pour sélectionner</p>
             <input type="file" id="fileInput" accept="image/*">
             <button
                 class="upload-btn"

@@ -127,14 +127,12 @@ jobs:
           --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
           --document-name "AWS-RunShellScript" \
           --parameters 'commands=["chmod +x /tmp/deploy.sh", "/tmp/deploy.sh"]' \
-          --region eu-west-3 \
-          --output-s3-bucket-name "semantic-segmentation-logs" \
-          --output-s3-key-prefix "deployments"
+          --region eu-west-3
         
         echo "✅ Deployment command sent successfully!"
         
     - name: Wait for deployment completion
-      if: secrets.EC2_INSTANCE_ID
+      if: ${{ secrets.EC2_INSTANCE_ID != '' }}
       run: |
         echo "⏳ Waiting for deployment to complete..."
         sleep 30
@@ -165,7 +163,7 @@ jobs:
         echo "🎉 Docker image built and pushed to ECR!"
         echo "📦 Image: ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}"
         
-        if [ "${{ secrets.EC2_INSTANCE_ID }}" ]; then
+        if [ "${{ secrets.EC2_INSTANCE_ID }}" != "" ]; then
           # Get EC2 public IP
           EC2_IP=$(aws ec2 describe-instances \
             --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
