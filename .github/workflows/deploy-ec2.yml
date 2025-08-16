@@ -18,7 +18,7 @@ jobs:
   deploy-to-ec2:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'production' }}
+    environment: production
     
     steps:
     - name: Checkout code
@@ -55,7 +55,7 @@ jobs:
         docker push ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}
         
     - name: Deploy to EC2 (automatic deployment)
-      if: ${{ secrets.EC2_INSTANCE_ID != '' }}
+      if: secrets.EC2_INSTANCE_ID != ''
       run: |
         echo "🚀 Deploying to EC2 instance: ${{ secrets.EC2_INSTANCE_ID }}"
         
@@ -128,7 +128,7 @@ jobs:
         echo "✅ Deployment command sent successfully!"
         
     - name: Wait for deployment completion
-      if: ${{ secrets.EC2_INSTANCE_ID != '' }}
+      if: secrets.EC2_INSTANCE_ID != ''
       run: |
         echo "⏳ Waiting for deployment to complete..."
         sleep 30
