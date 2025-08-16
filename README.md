@@ -72,3 +72,4 @@ The application is automatically deployed to EC2 via CI/CD pipeline:
 ## License
 
 MIT License# Test comment
+# Test workflow trigger
