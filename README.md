@@ -1,280 +1,74 @@
-# 🚀 API de Segmentation Sémantique - Cityscapes
+# Semantic Image Segmentation API
 
-API FastAPI pour la segmentation sémantique d'images urbaines utilisant un modèle U-Net.
+A FastAPI-based semantic image segmentation service using a U-Net model for urban scene understanding.
 
-## 📊 Métriques de Qualité
+## 🚀 **Latest Update: EC2 Deployment Complete!**
 
-- **Couverture de code** : 95%
-- **Tests unitaires** : 35 tests
-- **Tests d'intégration** : 33 tests
-- **Total** : 68 tests
+The application is now successfully deployed on EC2 with full CI/CD automation:
+- **API URL:** http://13.36.249.197:8000
+- **Health Check:** http://13.36.249.197:8000/health
+- **API Documentation:** http://13.36.249.197:8000/docs
 
-## 🏗️ Architecture
+## Features
 
-```
-semantic_image_segmentation/
-├── app/                          # Application principale
-│   ├── api/                      # Routes API
-│   │   ├── health.py            # Endpoints de santé
-│   │   └── segmentation.py      # Endpoints de segmentation
-│   ├── services/                 # Logique métier
-│   │   └── segmentation_service.py
-│   ├── schemas/                  # Modèles Pydantic
-│   │   └── responses.py
-│   ├── config.py                 # Configuration
-│   └── main.py                   # Point d'entrée
-├── tests/                        # Suite de tests
-│   ├── unit/                     # Tests unitaires
-│   ├── integration/              # Tests d'intégration
-│   └── conftest.py              # Configuration pytest
-├── model/                        # Modèle U-Net
-├── scripts/                      # Scripts utilitaires
-└── Makefile                     # Commandes automatisées
-```
+- **Semantic Segmentation:** Segment urban images into 8 classes
+- **RESTful API:** FastAPI-based endpoints
+- **Docker Support:** Containerized deployment
+- **DVC Integration:** Model versioning with S3
+- **EC2 Deployment:** Production-ready deployment
+- **CI/CD Pipeline:** Automated testing and deployment
 
-## 🚀 Démarrage Rapide
+## API Endpoints
 
-### Prérequis
-- Python 3.12+
-- Environnement virtuel activé
+- `GET /` - Welcome page
+- `GET /health` - Health check
+- `GET /info` - API information
+- `POST /api/segment` - Image segmentation
+- `POST /api/segment-with-stats` - Segmentation with statistics
 
-### Installation
+## Deployment
+
+### Local Development
 ```bash
-# Activer l'environnement virtuel
-source env/bin/activate
+# Install dependencies
+pip install -r requirements.txt
 
-# Vérifier l'installation
-make check-install
+# Run the application
+uvicorn app.main:app --reload
 ```
 
-### Démarrage
+### Docker Deployment
 ```bash
-# Mode développement
-make dev
-
-# Mode production
-make run
+# Build and run with Docker
+docker build -t semantic-segmentation-api .
+docker run -p 8000:8000 semantic-segmentation-api
 ```
 
-L'API sera disponible sur `http://localhost:8000`
+### EC2 Deployment
+The application is automatically deployed to EC2 via CI/CD pipeline:
+1. Push code to master branch
+2. GitHub Actions builds Docker image
+3. Image is pushed to ECR
+4. Automatic deployment to EC2 instance
+5. Health checks verify deployment
 
-## 📚 Documentation API
+## Model Information
 
-- **Swagger UI** : http://localhost:8000/docs
-- **ReDoc** : http://localhost:8000/redoc
-- **OpenAPI** : http://localhost:8000/openapi.json
+- **Architecture:** U-Net
+- **Classes:** 8 (road, sidewalk, building, wall, fence, pole, traffic light, traffic sign, vegetation, terrain, sky, pedestrian, rider, car, truck, bus, train, motorcycle, bicycle)
+- **Input Size:** 256x512
+- **Model Size:** ~30MB
 
-## 🧪 Tests
+## Technologies Used
 
-### Commandes Principales
-```bash
-# Tous les tests
-make test
+- **Backend:** FastAPI, Python 3.11
+- **ML Framework:** TensorFlow 2.16.1
+- **Image Processing:** OpenCV, Pillow
+- **Containerization:** Docker
+- **Model Management:** DVC with S3
+- **Deployment:** AWS EC2, ECR
+- **CI/CD:** GitHub Actions
 
-# Tests unitaires uniquement
-make test-unit
+## License
 
-# Tests d'intégration uniquement
-make test-integration
-
-# Tests avec couverture
-make test-coverage
-```
-
-### Tests Spécialisés
-```bash
-# Tests de performance
-make test-performance
-
-# Tests des schémas
-make test-schemas
-
-# Tests du service
-make test-service
-
-# Tests des endpoints
-make test-endpoints
-
-# Tests rapides (sans tests lents)
-make test-fast
-```
-
-## 🐳 Docker
-
-### Construction et Exécution
-```bash
-# Construire l'image
-make docker-build
-
-# Démarrer le conteneur
-make docker-run
-
-# Arrêter le conteneur
-make docker-stop
-```
-
-### Tests avec Docker
-```bash
-# Construire l'image de test
-make docker-build-test
-
-# Exécuter les tests
-make docker-test
-```
-
-## 🎨 Qualité du Code
-
-### Vérifications
-```bash
-# Vérification complète
-make quality-check
-
-# Linting
-make lint
-
-# Formatage
-make format
-
-# Scan de sécurité
-make security-scan
-```
-
-## 🧹 Nettoyage
-
-```bash
-# Nettoyer les fichiers de test
-make clean
-
-# Nettoyer Docker
-make clean-docker
-
-# Nettoyage complet
-make clean-all
-```
-
-## 📋 Endpoints Disponibles
-
-### Endpoints de Base
-- `GET /` - Page d'accueil
-- `GET /health` - Vérification de santé
-- `GET /info` - Informations sur l'API
-
-### Endpoints de Segmentation
-- `POST /api/segment` - Segmentation d'image (retourne l'image)
-- `POST /api/segment-with-stats` - Segmentation avec statistiques
-
-## 🔧 Configuration
-
-L'application utilise des variables d'environnement :
-
-```bash
-HOST=0.0.0.0          # Hôte d'écoute
-PORT=8000             # Port d'écoute
-RELOAD=true           # Rechargement automatique
-LOG_LEVEL=info        # Niveau de log
-```
-
-## 📈 Performance
-
-- **Temps de réponse** : < 2s pour la segmentation
-- **Requêtes concurrentes** : Support de 10+ requêtes simultanées
-- **Images volumineuses** : Support jusqu'à 2048x2048 pixels
-
-## 🛠️ Développement
-
-### Structure des Tests
-```
-tests/
-├── unit/                     # Tests unitaires
-│   ├── test_config.py       # Tests de configuration
-│   ├── test_schemas.py      # Tests des schémas
-│   └── test_segmentation_service.py
-├── integration/              # Tests d'intégration
-│   ├── test_api_endpoints.py
-│   ├── test_full_application.py
-│   └── test_performance.py
-└── conftest.py              # Fixtures communes
-```
-
-### 🗄️ Gestion des Modèles avec DVC
-
-Le projet utilise DVC pour versionner et stocker le modèle U-Net dans AWS S3 :
-
-```bash
-# Configuration DVC avec S3
-make dvc-setup-s3
-
-# Pousser le modèle vers S3
-make dvc-push
-
-# Télécharger le modèle depuis S3
-make dvc-pull
-
-# Vérifier le statut
-make dvc-status
-```
-
-**📖 Documentation complète :** Voir `DVC_README.md`
-
-### Ajout de Nouveaux Tests
-1. Créer le fichier de test dans le bon dossier
-2. Utiliser les fixtures communes de `conftest.py`
-3. Suivre les conventions de nommage
-4. Ajouter les marqueurs appropriés (`@pytest.mark.slow` si nécessaire)
-
-## 📊 Couverture de Code
-
-```bash
-# Générer le rapport de couverture
-make test-coverage
-
-# Ouvrir le rapport HTML
-open htmlcov/index.html
-```
-
-## 🚨 Gestion d'Erreurs
-
-L'API inclut une gestion d'erreurs robuste :
-- Validation des types de fichiers
-- Gestion des erreurs de segmentation
-- Messages d'erreur informatifs
-- Codes de statut HTTP appropriés
-
-## 🔒 Sécurité
-
-- Validation des entrées avec Pydantic
-- Scan de sécurité avec Bandit
-- Headers CORS configurables
-- Validation des types de fichiers
-
-## 📝 Logs
-
-L'application génère des logs détaillés :
-- Démarrage et arrêt de l'application
-- Temps de traitement des requêtes
-- Erreurs et exceptions
-- Statistiques de segmentation
-
-## 🤝 Contribution
-
-1. Fork le projet
-2. Créer une branche feature
-3. Ajouter les tests correspondants
-4. Vérifier la qualité du code : `make quality-check`
-5. Soumettre une pull request
-
-## 📄 Licence
-
-Ce projet est sous licence MIT.
-
-## 🆘 Support
-
-Pour toute question ou problème :
-1. Consulter la documentation API
-2. Vérifier les logs de l'application
-3. Exécuter les tests : `make test`
-4. Ouvrir une issue sur GitHub
-
----
-
-**Développé avec ❤️ pour la segmentation sémantique d'images urbaines**
+MIT License# Test comment
