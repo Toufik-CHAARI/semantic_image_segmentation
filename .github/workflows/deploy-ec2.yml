@@ -13,10 +13,6 @@ on:
         - staging
   push:
     branches: [ master ]
-    paths:
-      - 'app/**'
-      - 'Dockerfile'
-      - 'requirements.txt'
 
 jobs:
   deploy-to-ec2:
