@@ -2,21 +2,11 @@ name: Deploy to EC2
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-        - production
-        - staging
   push:
     branches: [ master ]
 
 jobs:
-  deploy-to-ec2:
-    name: Deploy to EC2
+  deploy:
     runs-on: ubuntu-latest
     environment: production
     
@@ -40,158 +30,39 @@ jobs:
       
     - name: Build and push Docker image
       run: |
-        # Build the Docker image
         docker build \
           --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
           --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
           --build-arg AWS_DEFAULT_REGION="eu-west-3" \
-          -t semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }} .
+          -t semantic-segmentation-api:latest .
         
-        # Tag for ECR
-        docker tag semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }} \
-          ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}
+        docker tag semantic-segmentation-api:latest \
+          ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:latest
         
-        # Push to ECR
-        docker push ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}
+        docker push ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:latest
         
-    - name: Deploy to EC2 (automatic deployment)
+    - name: Deploy to EC2
       if: secrets.EC2_INSTANCE_ID != ''
       run: |
-        echo "🚀 Deploying to EC2 instance: ${{ secrets.EC2_INSTANCE_ID }}"
+        echo "Deploying to EC2 instance: ${{ secrets.EC2_INSTANCE_ID }}"
         
-        # Create deployment script
-        cat > deploy.sh << 'EOF'
-        #!/bin/bash
-        set -e
-        
-        echo "Starting deployment..."
-        
-        # Get AWS account ID
-        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        echo "AWS Account ID: $ACCOUNT_ID"
-        
-        # Login to ECR
-        aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com
-        
-        # Pull latest image
-        echo "Pulling latest image..."
-        docker pull $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}
-        
-        # Stop existing container
-        echo "Stopping existing container..."
-        docker stop semantic-segmentation-container || true
-        docker rm semantic-segmentation-container || true
-        
-        # Run new container
-        echo "Starting new container..."
-        docker run -d \
-          --name semantic-segmentation-container \
-          -p 8000:8000 \
-          --restart=always \
-          $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}
-        
-        # Wait for startup
-        echo "Waiting for application to start..."
-        sleep 20
-        
-        # Test health endpoint
-        echo "Testing health endpoint..."
-        for i in {1..5}; do
-          if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-            echo "✅ Health check passed!"
-            break
-          else
-            echo "⏳ Health check attempt $i failed, retrying..."
-            sleep 5
-          fi
-        done
-        
-        # Final health check
-        if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-          echo "✅ Deployment successful!"
-          echo "🌐 API is accessible at: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8000"
-        else
-          echo "❌ Deployment failed - health check failed"
-          docker logs semantic-segmentation-container
-          exit 1
-        fi
-        EOF
-        
-        # Copy deployment script to EC2 and execute
-        echo "Sending deployment command to EC2..."
         aws ssm send-command \
           --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
           --document-name "AWS-RunShellScript" \
-          --parameters 'commands=["chmod +x /tmp/deploy.sh", "/tmp/deploy.sh"]' \
+          --parameters 'commands=["docker pull ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:latest", "docker stop semantic-segmentation-container || true", "docker rm semantic-segmentation-container || true", "docker run -d --name semantic-segmentation-container -p 8000:8000 --restart=always ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:latest"]' \
           --region eu-west-3
         
-        echo "✅ Deployment command sent successfully!"
-        
-    - name: Wait for deployment completion
-      if: secrets.EC2_INSTANCE_ID != ''
+    - name: Output deployment info
       run: |
-        echo "⏳ Waiting for deployment to complete..."
-        sleep 30
-        
-        # Get EC2 public IP
-        EC2_IP=$(aws ec2 describe-instances \
-          --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
-          --query 'Reservations[0].Instances[0].PublicIpAddress' \
-          --output text \
-          --region eu-west-3)
-        
-        echo "EC2 Public IP: $EC2_IP"
-        
-        # Test the deployment
-        echo "🧪 Testing deployment..."
-        for i in {1..3}; do
-          if curl -f http://$EC2_IP:8000/health > /dev/null 2>&1; then
-            echo "✅ Deployment test successful!"
-            break
-          else
-            echo "⏳ Test attempt $i failed, retrying..."
-            sleep 10
-          fi
-        done
-        
-    - name: Output deployment information
-      run: |
-        echo "🎉 Docker image built and pushed to ECR!"
-        echo "📦 Image: ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}"
+        echo "Docker image built and pushed to ECR!"
+        echo "Image: ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:latest"
         
         if [ "${{ secrets.EC2_INSTANCE_ID }}" != "" ]; then
-          # Get EC2 public IP
           EC2_IP=$(aws ec2 describe-instances \
             --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
             --query 'Reservations[0].Instances[0].PublicIpAddress' \
             --output text \
             --region eu-west-3)
           
-          echo ""
-          echo "🚀 Automatic deployment completed!"
-          echo "🌐 API is accessible at: http://$EC2_IP:8000"
-          echo "📋 API Endpoints:"
-          echo "   - Health: http://$EC2_IP:8000/health"
-          echo "   - Info: http://$EC2_IP:8000/info"
-          echo "   - Docs: http://$EC2_IP:8000/docs"
-          echo "   - Segment: http://$EC2_IP:8000/api/segment"
-        else
-          echo ""
-          echo "📋 Manual deployment steps:"
-          echo "1. SSH to your EC2 instance"
-          echo "2. Pull the image: docker pull ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}"
-          echo "3. Stop existing container: docker stop semantic-segmentation-container"
-          echo "4. Run new container: docker run -d --name semantic-segmentation-container -p 8000:8000 --restart unless-stopped ${{ steps.login-ecr.outputs.registry }}/semantic-segmentation-api:${{ github.event.inputs.environment || 'production' }}"
-          echo "5. Test: curl http://localhost:8000/health"
-          echo ""
-          echo "🌐 Access your API at: http://<EC2-PUBLIC-IP>:8000"
-        fi
-        
-    - name: Notify deployment status
-      if: always()
-      run: |
-        if [ "${{ job.status }}" == "success" ]; then
-          echo "✅ Deployment completed successfully!"
-        else
-          echo "❌ Deployment failed!"
+          echo "API is accessible at: http://$EC2_IP:8000"
         fi
