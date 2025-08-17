@@ -254,14 +254,18 @@ jobs:
         # Login to ECR
         aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com
         
-        # Pull latest image
-        echo "Pulling latest image..."
-        docker pull $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production
-        
         # Stop existing container
         echo "Stopping existing container..."
         docker stop semantic-segmentation-container || true
         docker rm semantic-segmentation-container || true
+        
+        # Remove old image to force fresh pull
+        echo "Removing old image..."
+        docker rmi $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production || true
+        
+        # Pull latest image
+        echo "Pulling latest image..."
+        docker pull $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production
         
         # Run new container
         echo "Starting new container..."

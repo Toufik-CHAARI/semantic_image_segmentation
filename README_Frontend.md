@@ -7,9 +7,8 @@ This guide provides comprehensive documentation for frontend developers to integ
 ## 📡 **API Base URL**
 
 ```
-Production: https://fx8r2pg0ml.execute-api.eu-west-3.amazonaws.com/production
-MVP:        https://[mvp-api-url]/mvp
-Staging:    https://[staging-api-url]/staging
+Production: http://13.36.249.197:8000/
+
 ```
 
 ## 🔗 **Available Endpoints**
