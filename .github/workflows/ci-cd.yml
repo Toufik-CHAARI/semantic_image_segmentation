@@ -193,6 +193,7 @@ jobs:
           --build-arg AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
           --build-arg AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
           --build-arg AWS_DEFAULT_REGION="eu-west-3" \
+          --build-arg BUILD_TIMESTAMP="${{ github.run_id }}" \
           -t semantic-segmentation-api:production .
         
         # Tag for ECR
