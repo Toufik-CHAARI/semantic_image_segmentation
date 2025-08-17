@@ -200,7 +200,7 @@ def get_web_interface_response():
 
         <div class="upload-area" id="uploadArea">
             <p>📁 Faites glisser et déposez une image ici ou
-            cliquez pour sélectionner</p>
+            cliquez pour sélectionner (TEST)</p>
             <input type="file" id="fileInput" accept="image/*">
             <button
                 class="upload-btn"
