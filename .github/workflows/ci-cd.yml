@@ -240,74 +240,30 @@ jobs:
         fi
         echo "🚀 Deploying to EC2 instance: ${{ secrets.EC2_INSTANCE_ID }}"
         
-        # Create deployment script
-        cat > deploy.sh << 'EOF'
-        #!/bin/bash
-        set -e
-        
-        echo "Starting deployment..."
-        
-        # Get AWS account ID
-        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        echo "AWS Account ID: $ACCOUNT_ID"
-        
-        # Login to ECR
-        aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com
-        
-        # Stop existing container
-        echo "Stopping existing container..."
-        docker stop semantic-segmentation-container || true
-        docker rm semantic-segmentation-container || true
-        
-        # Remove old image to force fresh pull
-        echo "Removing old image..."
-        docker rmi $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production || true
-        
-        # Pull latest image
-        echo "Pulling latest image..."
-        docker pull $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production
-        
-        # Run new container
-        echo "Starting new container..."
-        docker run -d \
-          --name semantic-segmentation-container \
-          -p 8000:8000 \
-          --restart=always \
-          $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production
-        
-        # Wait for startup
-        echo "Waiting for application to start..."
-        sleep 20
-        
-        # Test health endpoint
-        echo "Testing health endpoint..."
-        for i in {1..5}; do
-          if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-            echo "✅ Health check passed!"
-            break
-          else
-            echo "⏳ Health check attempt $i failed, retrying..."
-            sleep 5
-          fi
-        done
-        
-        # Final health check
-        if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-          echo "✅ Deployment successful!"
-          echo "🌐 API is accessible at: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8000"
-        else
-          echo "❌ Deployment failed - health check failed"
-          docker logs semantic-segmentation-container
-          exit 1
-        fi
-        EOF
-        
-        # Send deployment script to EC2 and execute
-        echo "Sending deployment command to EC2..."
+        # Send deployment commands directly to EC2
+        echo "Sending deployment commands to EC2..."
         aws ssm send-command \
           --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
           --document-name "AWS-RunShellScript" \
-          --parameters 'commands=["chmod +x /tmp/deploy.sh", "/tmp/deploy.sh"]' \
+          --parameters 'commands=[
+            "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)",
+            "echo \"AWS Account ID: $ACCOUNT_ID\"",
+            "aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com",
+            "echo \"Stopping existing container...\"",
+            "docker stop semantic-segmentation-container || true",
+            "docker rm semantic-segmentation-container || true",
+            "echo \"Removing old image...\"",
+            "docker rmi $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production || true",
+            "echo \"Pulling latest image...\"",
+            "docker pull $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production",
+            "echo \"Starting new container...\"",
+            "docker run -d --name semantic-segmentation-container -p 8000:8000 --restart=always $ACCOUNT_ID.dkr.ecr.eu-west-3.amazonaws.com/semantic-segmentation-api:production",
+            "echo \"Waiting for application to start...\"",
+            "sleep 20",
+            "echo \"Testing health endpoint...\"",
+            "for i in {1..5}; do if curl -f http://localhost:8000/health > /dev/null 2>&1; then echo \"✅ Health check passed!\"; break; else echo \"⏳ Health check attempt $i failed, retrying...\"; sleep 5; fi; done",
+            "if curl -f http://localhost:8000/health > /dev/null 2>&1; then echo \"✅ Deployment successful!\"; echo \"🌐 API is accessible at: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):8000\"; else echo \"❌ Deployment failed - health check failed\"; docker logs semantic-segmentation-container; exit 1; fi"
+          ]' \
           --region eu-west-3
         
         echo "✅ Deployment command sent successfully!"
