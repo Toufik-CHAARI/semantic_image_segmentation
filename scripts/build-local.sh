@@ -21,7 +21,8 @@ echo -e "${BLUE}🔨 Building Docker images locally...${NC}"
 # Check if .env file exists
 if [ -f ".env/.env" ]; then
     echo -e "${BLUE}📁 Loading AWS credentials from .env/.env${NC}"
-    source .env/.env
+    # Skip the problematic line
+    grep -v "^EC2_INSTANCE_ID$" .env/.env | source /dev/stdin
 else
     echo -e "${YELLOW}⚠️  .env/.env file not found${NC}"
     echo -e "${YELLOW}   Please create .env/.env with your AWS credentials:${NC}"
