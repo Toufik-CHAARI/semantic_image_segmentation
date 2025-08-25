@@ -9,16 +9,16 @@ from app.main import app
 
 
 class TestAPIEndpoints:
-    """Tests d'intégration pour les endpoints API"""
+    """Integration tests for API endpoints"""
 
     @pytest.fixture
     def client(self):
-        """Client de test FastAPI"""
+        """Test client for FastAPI"""
         return TestClient(app)
 
     @pytest.fixture
     def sample_image_bytes(self):
-        """Image de test en bytes"""
+        """Test image in bytes"""
         img = Image.new("RGB", (100, 100), color="blue")
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="PNG")
@@ -26,11 +26,11 @@ class TestAPIEndpoints:
 
     @pytest.fixture
     def mock_segmentation_service(self):
-        """Mock du service de segmentation"""
+        """Mock segmentation service"""
         with patch(
             "app.api.segmentation.segmentation_service.segment_image"
         ) as mock_service:
-            # Mock des données de retour
+            # Mock return data
             mock_stats = {
                 "road": {"pixel_count": 1000, "percentage": 25.0},
                 "building": {"pixel_count": 800, "percentage": 20.0},
@@ -42,7 +42,7 @@ class TestAPIEndpoints:
                 "background": {"pixel_count": 100, "percentage": 2.5},
             }
 
-            # Créer une image PNG mock
+            # create mock PNG image
             mock_img = Image.new("RGB", (256, 512), color="red")
             mock_img_bytes = io.BytesIO()
             mock_img.save(mock_img_bytes, format="PNG")
@@ -51,7 +51,7 @@ class TestAPIEndpoints:
             yield mock_service
 
     def test_root_endpoint_browser(self, client):
-        """Test de l'endpoint racine pour les navigateurs (HTML)"""
+        """Test root endpoint for browsers (HTML)"""
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
@@ -64,7 +64,7 @@ class TestAPIEndpoints:
         assert "Semantic Image Segmentation" in response.text
 
     def test_root_endpoint_api(self, client):
-        """Test de l'endpoint racine pour les API (JSON)"""
+        """Test root endpoint for API (JSON)"""
         headers = {"Accept": "application/json"}
         response = client.get("/", headers=headers)
 
@@ -80,7 +80,7 @@ class TestAPIEndpoints:
         assert data["version"] == "1.0.0"
 
     def test_web_interface_endpoint(self, client):
-        """Test de l'endpoint de l'interface web"""
+        """Test web interface endpoint"""
         response = client.get("/web")
 
         assert response.status_code == 200
@@ -90,7 +90,7 @@ class TestAPIEndpoints:
         assert "drag and drop" in response.text.lower()
 
     def test_health_endpoint(self, client):
-        """Test de l'endpoint de santé"""
+        """Test health endpoint"""
         response = client.get("/health")
 
         assert response.status_code == 200
@@ -101,7 +101,7 @@ class TestAPIEndpoints:
         assert "timestamp" in data
 
     def test_info_endpoint(self, client):
-        """Test de l'endpoint d'information"""
+        """Test info endpoint"""
         response = client.get("/info")
 
         assert response.status_code == 200
@@ -117,7 +117,7 @@ class TestAPIEndpoints:
     def test_segment_endpoint_success(
         self, client, sample_image_bytes, mock_segmentation_service
     ):
-        """Test de l'endpoint de segmentation avec succès"""
+        """Test segment endpoint with success"""
         files = {"file": ("test_image.png", sample_image_bytes, "image/png")}
         response = client.post("/api/segment", files=files)
 
@@ -126,11 +126,11 @@ class TestAPIEndpoints:
         assert "X-Processing-Time" in response.headers
         assert "X-Image-Stats" in response.headers
 
-        # Vérifier que le service a été appelé
+        # check if service was called
         mock_segmentation_service.assert_called_once()
 
     def test_segment_endpoint_invalid_file_type(self, client):
-        """Test de l'endpoint de segmentation avec un type de fichier invalide"""
+        """Test segment endpoint with invalid file type"""
         files = {"file": ("test.txt", b"not an image", "text/plain")}
         response = client.post("/api/segment", files=files)
 
@@ -140,7 +140,7 @@ class TestAPIEndpoints:
         assert "image" in data["detail"].lower()
 
     def test_segment_endpoint_no_file(self, client):
-        """Test de l'endpoint de segmentation sans fichier"""
+        """Test segment endpoint without file"""
         response = client.post("/api/segment")
 
         assert response.status_code == 422  # Validation error
@@ -148,7 +148,7 @@ class TestAPIEndpoints:
     def test_segment_with_stats_endpoint_success(
         self, client, sample_image_bytes, mock_segmentation_service
     ):
-        """Test de l'endpoint de segmentation avec statistiques"""
+        """Test segment endpoint with statistics"""
         files = {"file": ("test_image.png", sample_image_bytes, "image/png")}
         response = client.post("/api/segment-with-stats", files=files)
 
@@ -160,7 +160,7 @@ class TestAPIEndpoints:
         assert "image_size" in data
         assert "processing_time" in data
 
-        # Vérifier la structure des statistiques
+        # check statistics structure
         stats = data["stats"]
         assert len(stats) == 8  # 8 classes
         for class_name, class_stats in stats.items():
@@ -168,14 +168,14 @@ class TestAPIEndpoints:
             assert "percentage" in class_stats
 
     def test_segment_with_stats_endpoint_invalid_file(self, client):
-        """Test de l'endpoint de segmentation avec statistiques et fichier invalide"""
+        """Test segment endpoint with statistics and invalid file"""
         files = {"file": ("test.txt", b"not an image", "text/plain")}
         response = client.post("/api/segment-with-stats", files=files)
 
         assert response.status_code == 400
 
     def test_documentation_endpoints(self, client):
-        """Test des endpoints de documentation"""
+        """Test documentation endpoints"""
         # Test Swagger UI
         response = client.get("/docs")
         assert response.status_code == 200
@@ -185,7 +185,7 @@ class TestAPIEndpoints:
         assert response.status_code == 200
 
     def test_openapi_schema(self, client):
-        """Test du schéma OpenAPI"""
+        """Test OpenAPI schema"""
         response = client.get("/openapi.json")
 
         assert response.status_code == 200
@@ -197,8 +197,8 @@ class TestAPIEndpoints:
         assert data["info"]["title"] == "Cityscapes Semantic Segmentation API"
 
     def test_cors_headers(self, client):
-        """Test des headers CORS"""
-        # Test avec un endpoint qui supporte OPTIONS (POST)
+        """Test CORS headers"""
+        # Test with an endpoint that supports OPTIONS (POST)
         headers = {
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "POST",
@@ -206,13 +206,13 @@ class TestAPIEndpoints:
         }
         response = client.options("/api/segment", headers=headers)
 
-        # Vérifier que les headers CORS sont présents
+        # check if CORS headers are present
         assert "access-control-allow-origin" in response.headers
         assert "access-control-allow-methods" in response.headers
 
     def test_error_handling(self, client, sample_image_bytes):
-        """Test de la gestion d'erreurs"""
-        # Mock une erreur dans le service
+        """Test error handling"""
+        # Mock an error in the service
         with patch(
             "app.api.segmentation.segmentation_service.segment_image",
             side_effect=Exception("Test error"),
@@ -226,8 +226,8 @@ class TestAPIEndpoints:
             assert "error" in data["detail"].lower()
 
     def test_large_image_handling(self, client):
-        """Test de la gestion d'images volumineuses"""
-        # Créer une image plus grande
+        """Test large image handling"""
+        # create a larger image
         large_img = Image.new("RGB", (2000, 2000), color="green")
         large_img_bytes = io.BytesIO()
         large_img.save(large_img_bytes, format="PNG")
@@ -247,21 +247,21 @@ class TestAPIEndpoints:
     def test_multiple_concurrent_requests(
         self, client, sample_image_bytes, mock_segmentation_service
     ):
-        """Test de requêtes concurrentes"""
+        """Test concurrent requests"""
         import concurrent.futures
 
         def make_request():
             files = {"file": ("test_image.png", sample_image_bytes, "image/png")}
             return client.post("/api/segment", files=files)
 
-        # Faire 5 requêtes concurrentes
+        # make 5 concurrent requests
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(make_request) for _ in range(5)]
             responses = [future.result() for future in futures]
 
-        # Vérifier que toutes les requêtes ont réussi
+        # check if all requests were successful
         for response in responses:
             assert response.status_code == 200
 
-        # Vérifier que le service a été appelé 5 fois
+        # check if service was called 5 times
         assert mock_segmentation_service.call_count == 5

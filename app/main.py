@@ -199,7 +199,7 @@ def get_web_interface_response():
         <h1>🎯 Semantic Image Segmentation</h1>
 
         <div class="upload-area" id="uploadArea">
-            <p>📁 Hello de lu Faites glisser une image ici ou
+            <p>📁 Faites glisser une image ici ou
             cliquez pour télécharger</p>
             <input type="file" id="fileInput" accept="image/*">
             <button

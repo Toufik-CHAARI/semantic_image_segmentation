@@ -102,4 +102,4 @@ jobs:
     
     - name: Verify model integrity
       run: |
-        python -c "import tensorflow as tf; tf.keras.models.load_model('model/unet_best.keras', compile=False); print('✅ Model loaded successfully')"
+        python -c "import tensorflow as tf; tf.keras.models.load_model('model/V3_unet_best.keras', compile=False); print('✅ Model loaded successfully')"

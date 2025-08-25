@@ -111,8 +111,7 @@ docker-build-test:
 	docker build -f Dockerfile.test -t $(APP_NAME):test . && \
 	mv .dockerignore.backup .dockerignore
 
-docker-build-lambda:
-	docker build -f Dockerfile.lambda -t $(APP_NAME)-lambda:$(ENVIRONMENT) .
+
 
 # Build all Docker images for development
 docker-build-all:
@@ -167,12 +166,7 @@ docker-push-ecr:
 	docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):$(ENVIRONMENT)
 	@echo "✅ Production image pushed to ECR: $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME):$(ENVIRONMENT)"
 
-docker-push-ecr-lambda:
-	@echo "Pushing Lambda image to AWS ECR..."
-	@aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
-	docker tag $(APP_NAME)-lambda:$(ENVIRONMENT) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)
-	docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)
-	@echo "✅ Lambda image pushed to ECR: $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ENVIRONMENT)-semantic-image-segmentation-api:$(ENVIRONMENT)"
+
 
 docker-push-ecr-all:
 	@echo "Pushing all images to AWS ECR..."
@@ -195,32 +189,7 @@ docker-stop:
 docker-test:
 	docker run --rm $(APP_NAME):test
 
-# Test all Docker images
-docker-test-all:
-	@echo "🧪 Testing all Docker images..."
-	@echo ""
-	@echo "📦 Testing production image..."
-	@docker run --rm -d --name test-prod -p 8001:8000 $(APP_NAME):$(ENVIRONMENT) || true
-	@sleep 10
-	@curl -f http://localhost:8001/health > /dev/null 2>&1 && echo "✅ Production image: HEALTH OK" || echo "❌ Production image: HEALTH FAILED"
-	@docker stop test-prod > /dev/null 2>&1 || true
-	@docker rm test-prod > /dev/null 2>&1 || true
-	@echo ""
-	@echo "🧪 Testing test image..."
-	@docker run --rm -d --name test-test -p 8002:8000 $(APP_NAME):test || true
-	@sleep 10
-	@curl -f http://localhost:8002/health > /dev/null 2>&1 && echo "✅ Test image: HEALTH OK" || echo "❌ Test image: HEALTH FAILED"
-	@docker stop test-test > /dev/null 2>&1 || true
-	@docker rm test-test > /dev/null 2>&1 || true
-	@echo ""
-	@echo "☁️ Testing Lambda image..."
-	@docker run --rm -d --name test-lambda -p 8003:8080 $(APP_NAME)-lambda:$(ENVIRONMENT) || true
-	@sleep 5
-	@docker logs test-lambda | grep -q "rapid" && echo "✅ Lambda image: RUNTIME OK" || echo "❌ Lambda image: RUNTIME FAILED"
-	@docker stop test-lambda > /dev/null 2>&1 || true
-	@docker rm test-lambda > /dev/null 2>&1 || true
-	@echo ""
-	@echo "🎉 All Docker images tested!"
+
 
 docker-compose-up:
 	docker-compose up -d
@@ -354,11 +323,7 @@ help:
 	@echo "🐳 Docker:"
 	@echo "  make docker-build      - Construire l'image Docker"
 	@echo "  make docker-build-test - Construire l'image de test"
-	@echo "  make docker-build-lambda - Construire l'image Lambda"
-	@echo "  make docker-build-all - Construire toutes les images Docker"
 	@echo "  make docker-test-all - Tester toutes les images Docker"
-	@echo "  make docker-deploy-lambda - Construire et déployer Lambda (ENVIRONMENT=mvp|staging|production)"
-	@echo "  make docker-push-ecr-lambda - Pousser l'image Lambda vers ECR"
 	@echo "  make docker-run        - Démarrer le conteneur"
 	@echo "  make docker-stop       - Arrêter le conteneur"
 	@echo "  make docker-test       - Tester l'image Docker"

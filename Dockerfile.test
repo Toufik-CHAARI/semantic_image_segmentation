@@ -58,7 +58,7 @@ ENV AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
 # Pull the model using DVC from S3
 RUN dvc remote add myremote s3://semantic-segmentation-models-1754924238 --force || true && \
     dvc remote modify myremote region eu-west-3 && \
-    dvc pull model/unet_best.keras.dvc
+    dvc pull model/V3_unet_best.keras.dvc
 
 # Clear AWS credentials from environment (security)
 ENV AWS_ACCESS_KEY_ID=

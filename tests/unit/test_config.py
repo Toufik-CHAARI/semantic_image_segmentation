@@ -7,11 +7,11 @@ from app.config import Settings, settings
 
 
 class TestSettings:
-    """Tests pour la classe Settings"""
+    """Tests for the Settings class"""
 
     def test_default_settings(self):
-        """Test des paramètres par défaut"""
-        # Sauvegarder les variables d'environnement actuelles
+        """Test default parameters"""
+        # save current environment variables
         original_env = {}
         for key in ["HOST", "PORT", "RELOAD", "LOG_LEVEL"]:
             if key in os.environ:
@@ -19,7 +19,7 @@ class TestSettings:
                 del os.environ[key]
 
         try:
-            # Créer une nouvelle instance avec les valeurs par défaut
+            # create a new instance with default values
             test_settings = Settings()
 
             assert test_settings.API_TITLE == "Cityscapes Semantic Segmentation API"
@@ -28,7 +28,7 @@ class TestSettings:
                 "utilisant un modèle U-Net"
             )
             assert test_settings.API_VERSION == "1.0.0"
-            assert test_settings.MODEL_PATH == "model/unet_best.keras"
+            assert test_settings.MODEL_PATH == "model/V3_unet_best.keras"
             assert test_settings.N_CLASSES == 8
             assert test_settings.IMG_SIZE == (256, 512)
             assert test_settings.HOST == "0.0.0.0"
@@ -37,13 +37,13 @@ class TestSettings:
             assert test_settings.LOG_LEVEL == "info"
 
         finally:
-            # Restaurer les variables d'environnement
+            # restore environment variables
             for key, value in original_env.items():
                 os.environ[key] = value
 
     def test_environment_variables(self):
-        """Test de la lecture des variables d'environnement"""
-        # Définir des variables d'environnement de test
+        """Test environment variables reading"""
+        # define test environment variables
         test_env = {
             "HOST": "127.0.0.1",
             "PORT": "9000",
@@ -51,7 +51,7 @@ class TestSettings:
             "LOG_LEVEL": "debug",
         }
 
-        # Sauvegarder les variables actuelles
+        # save current environment variables
         original_env = {}
         for key in test_env:
             if key in os.environ:
@@ -59,20 +59,20 @@ class TestSettings:
             os.environ[key] = test_env[key]
 
         try:
-            # Créer une nouvelle instance
+            # create a new instance
             test_settings = Settings()
 
-            # HOST n'est pas une propriété, donc il utilise la valeur par défaut
+            # HOST is not a property, so it uses the default value
             # assert test_settings.HOST == "127.0.0.1"
-            # Ceci ne fonctionne pas car HOST n'est pas une propriété
-            # On ne peut pas vérifier la valeur de HOST
+            # this doesn't work because HOST is not a property
+            # we can't check the value of HOST
             assert test_settings.PORT == 9000
             assert test_settings.RELOAD is False
-            # Ceci ne fonctionne pas car LOG_LEVEL n'est pas une propriété
-            # On ne peut pas vérifier la valeur de LOG_LEVEL
+            # this doesn't work because LOG_LEVEL is not a property
+            # we can't check the value of LOG_LEVEL
 
         finally:
-            # Restaurer les variables d'environnement
+            # restore environment variables
             for key in test_env:
                 if key in original_env:
                     os.environ[key] = original_env[key]
@@ -80,19 +80,19 @@ class TestSettings:
                     del os.environ[key]
 
     def test_palette_configuration(self):
-        """Test de la configuration de la palette"""
+        """Test palette configuration"""
         test_settings = Settings()
 
         assert len(test_settings.PALETTE) == 8
         assert len(test_settings.PALETTE[0]) == 3  # RGB
 
-        # Vérifier que toutes les couleurs sont valides (0-255)
+        # check if all colors are valid (0-255)
         for color in test_settings.PALETTE:
             for component in color:
                 assert 0 <= component <= 255
 
     def test_class_names_configuration(self):
-        """Test de la configuration des noms de classes"""
+        """Test class names configuration"""
         test_settings = Settings()
 
         expected_classes = [
@@ -110,24 +110,24 @@ class TestSettings:
         assert len(test_settings.CLASS_NAMES) == test_settings.N_CLASSES
 
     def test_cors_configuration(self):
-        """Test de la configuration CORS"""
+        """Test CORS configuration"""
         test_settings = Settings()
 
         assert isinstance(test_settings.CORS_ORIGINS, list)
         assert "*" in test_settings.CORS_ORIGINS
 
     def test_port_validation(self):
-        """Test de la validation du port"""
-        # Test avec un port invalide
+        """Test port validation"""
+        # test with an invalid port
         with patch.dict(os.environ, {"PORT": "invalid"}):
             test_settings = Settings()
             with pytest.raises(ValueError):
-                # La validation se fait quand on accède à la propriété PORT
+                # the validation is done when accessing the PORT property
                 _ = test_settings.PORT
 
     def test_reload_validation(self):
-        """Test de la validation du paramètre reload"""
-        # Test avec des valeurs booléennes
+        """Test reload parameter validation"""
+        # test with boolean values
         test_cases = [
             ("true", True),
             ("false", False),
@@ -143,38 +143,38 @@ class TestSettings:
                 assert test_settings.RELOAD == expected
 
     def test_settings_singleton(self):
-        """Test que settings est un singleton"""
-        # Vérifier que l'instance globale est la même
+        """Test that settings is a singleton"""
+        # check if the global instance is the same
         assert settings is settings
 
-        # Vérifier que c'est une instance de Settings
+        # check if it is an instance of Settings
         assert isinstance(settings, Settings)
 
     def test_model_path_consistency(self):
-        """Test de la cohérence du chemin du modèle"""
+        """Test model path consistency"""
         test_settings = Settings()
 
-        # Vérifier que le chemin se termine par .keras
+        # check if the path ends with .keras
         assert test_settings.MODEL_PATH.endswith(".keras")
 
-        # Vérifier que le chemin est relatif
+        # check if the path is relative
         assert not test_settings.MODEL_PATH.startswith("/")
 
     def test_image_size_consistency(self):
-        """Test de la cohérence de la taille d'image"""
+        """Test image size consistency"""
         test_settings = Settings()
 
-        # Vérifier que la taille est un tuple de 2 entiers
+        # check if the size is a tuple of 2 integers
         assert isinstance(test_settings.IMG_SIZE, tuple)
         assert len(test_settings.IMG_SIZE) == 2
         assert all(isinstance(dim, int) for dim in test_settings.IMG_SIZE)
         assert all(dim > 0 for dim in test_settings.IMG_SIZE)
 
     def test_api_info_consistency(self):
-        """Test de la cohérence des informations API"""
+        """Test API information consistency"""
         test_settings = Settings()
 
-        # Vérifier que les informations API sont des chaînes non vides
+        # check if the API information is a non-empty string
         assert isinstance(test_settings.API_TITLE, str)
         assert len(test_settings.API_TITLE) > 0
 
@@ -184,7 +184,7 @@ class TestSettings:
         assert isinstance(test_settings.API_VERSION, str)
         assert len(test_settings.API_VERSION) > 0
 
-        # Vérifier le format de version
+        # check if the version format is correct
         version_parts = test_settings.API_VERSION.split(".")
         assert len(version_parts) >= 2
         assert all(part.isdigit() for part in version_parts)

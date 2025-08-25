@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("/health", response_model=HealthResponse)
 async def health():
-    """Endpoint de santé alternatif"""
+    """API Health Endpoint"""
     return HealthResponse(
         status="healthy",
         message="Service is operational",
@@ -21,8 +21,8 @@ async def health():
 
 @router.get("/info", response_model=InfoResponse)
 async def info():
-    """Endpoint d'information sur l'API et le modèle"""
-    # Vérifier si le modèle existe
+    """API Info Endpoint"""
+    # check if model exists and get model info
     from app.config import settings
 
     model_path = settings.MODEL_PATH
@@ -48,14 +48,13 @@ async def info():
         name="Cityscapes Semantic Segmentation API",
         version="1.0.0",
         description=(
-            "API de segmentation sémantique pour les images urbaines "
-            "utilisant un modèle U-Net"
+            "API for semantic segmentation of urban images " "using a U-Net model"
         ),
         model_info=model_info,
         endpoints=[
-            "GET / - Page d'accueil",
-            "GET /health - Vérification de santé",
-            "GET /info - Informations sur l'API",
-            "POST /segment - Segmentation d'image",
+            "GET / - Home page",
+            "GET /health - Health check",
+            "GET /info - API information",
+            "POST /segment - Image segmentation",
         ],
     )

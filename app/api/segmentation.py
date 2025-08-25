@@ -13,24 +13,24 @@ segmentation_service = SegmentationService()
 
 @router.post("/segment")
 async def segment_image(file: UploadFile = File(...)):
-    """Endpoint pour segmenter une image"""
-    # Vérifier le type de fichier
+    """API Image Segmentation Endpoint"""
+    # check if file is an image
     if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Le fichier doit être une image")
+        raise HTTPException(status_code=400, detail="File must be an image")
 
     try:
-        # Lire le fichier
+        # read file
         img_bytes = await file.read()
 
-        # Mesurer le temps de traitement
+        # measure processing time
         start_time = time.time()
 
-        # Effectuer la segmentation
+        # perform segmentation
         segmented_image_bytes, stats = segmentation_service.segment_image(img_bytes)
 
         processing_time = time.time() - start_time
 
-        # Retourner l'image segmentée
+        # return segmented image
         return StreamingResponse(
             io.BytesIO(segmented_image_bytes),
             media_type="image/png",
@@ -42,32 +42,32 @@ async def segment_image(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Erreur lors de la segmentation: {str(e)}"
+            status_code=500, detail=f"Error during segmentation: {str(e)}"
         )
 
 
 @router.post("/segment-with-stats")
 async def segment_image_with_stats(file: UploadFile = File(...)):
-    """Endpoint pour segmenter une image avec statistiques détaillées"""
-    # Vérifier le type de fichier
+    """API Image Segmentation Endpoint with detailed statistics"""
+    # check if file is an image
     if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Le fichier doit être une image")
+        raise HTTPException(status_code=400, detail="File must be an image")
 
     try:
-        # Lire le fichier
+        # read file
         img_bytes = await file.read()
 
-        # Mesurer le temps de traitement
+        # measure processing time
         start_time = time.time()
 
-        # Effectuer la segmentation
+        # perform segmentation
         segmented_image_bytes, stats = segmentation_service.segment_image(img_bytes)
 
         processing_time = time.time() - start_time
 
-        # Créer la réponse avec statistiques
+        # create response with statistics
         response = SegmentationResponse(
-            message="Segmentation effectuée avec succès",
+            message="Segmentation performed successfully",
             stats=stats,
             image_size=segmentation_service.IMG_SIZE,
             processing_time=processing_time,
@@ -77,5 +77,5 @@ async def segment_image_with_stats(file: UploadFile = File(...)):
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Erreur lors de la segmentation: {str(e)}"
+            status_code=500, detail=f"Error during segmentation: {str(e)}"
         )

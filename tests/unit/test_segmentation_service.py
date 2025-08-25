@@ -9,18 +9,18 @@ from app.services.segmentation_service import SegmentationService
 
 
 class TestSegmentationService:
-    """Tests unitaires pour le service de segmentation"""
+    """Tests for the segmentation service"""
 
     @pytest.fixture
     def mock_model(self):
-        """Mock du modèle TensorFlow"""
+        """Mock the TensorFlow model"""
         mock = Mock()
         mock.predict.return_value = [np.random.rand(256, 512, 8)]
         return mock
 
     @pytest.fixture
     def service(self, mock_model):
-        """Instance du service avec modèle mocké"""
+        """Instance of the service with a mocked model"""
         with patch(
             "app.services.segmentation_service.tf.keras.models.load_model",
             return_value=mock_model,
@@ -29,15 +29,15 @@ class TestSegmentationService:
 
     @pytest.fixture
     def sample_image_bytes(self):
-        """Image de test en bytes"""
-        # Créer une image de test simple
+        """Test image in bytes"""
+        # create a simple test image
         img = Image.new("RGB", (100, 100), color="red")
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="PNG")
         return img_bytes.getvalue()
 
     def test_init(self, mock_model):
-        """Test de l'initialisation du service"""
+        """Test initialization of the service"""
         with (
             patch("os.path.exists", return_value=True),
             patch(
@@ -53,7 +53,7 @@ class TestSegmentationService:
             assert service.model == mock_model
 
     def test_preprocess_image(self, service, sample_image_bytes):
-        """Test du prétraitement d'image"""
+        """Test image preprocessing"""
         result = service.preprocess_image(sample_image_bytes)
 
         assert isinstance(result, np.ndarray)
@@ -63,12 +63,12 @@ class TestSegmentationService:
         assert result.max() <= 1.0
 
     def test_preprocess_image_invalid_bytes(self, service):
-        """Test du prétraitement avec des bytes invalides"""
+        """Test image preprocessing with invalid bytes"""
         with pytest.raises(Exception):
             service.preprocess_image(b"invalid_image_data")
 
     def test_preprocess_image_pil_fallback(self, service):
-        """Test du prétraitement avec fallback PIL -> cv2"""
+        """Test image preprocessing with PIL fallback"""
         # Create a valid image but mock PIL to fail
         img = Image.new("RGB", (100, 100), color="blue")
         img_bytes = io.BytesIO()
@@ -85,7 +85,7 @@ class TestSegmentationService:
         assert result.max() <= 1.0
 
     def test_preprocess_image_pil_and_numpy_fallback(self, service):
-        """Test du prétraitement avec fallback PIL -> numpy -> cv2 direct"""
+        """Test image preprocessing with PIL -> numpy -> cv2 fallback"""
         # Create a valid image but mock both PIL and numpy to fail
         img = Image.new("RGB", (100, 100), color="green")
         img_bytes = io.BytesIO()
@@ -100,7 +100,7 @@ class TestSegmentationService:
                 service.preprocess_image(image_bytes)
 
     def test_preprocess_image_cv2_direct_success(self, service):
-        """Test du prétraitement avec cv2 direct (Method 3)"""
+        """Test image preprocessing with cv2 direct (Method 3)"""
         # Create a valid image
         img = Image.new("RGB", (100, 100), color="yellow")
         img_bytes = io.BytesIO()
@@ -120,8 +120,8 @@ class TestSegmentationService:
         assert result.max() <= 1.0
 
     def test_get_segmentation_stats(self, service):
-        """Test du calcul des statistiques de segmentation"""
-        # Créer des données de test
+        """Test segmentation statistics calculation"""
+        # create test data
         segmentation_ids = np.random.randint(0, 8, (256, 512))
 
         stats = service._get_segmentation_stats(segmentation_ids)
@@ -129,7 +129,7 @@ class TestSegmentationService:
         assert isinstance(stats, dict)
         assert len(stats) == 8
 
-        # Vérifier que toutes les classes sont présentes
+        # check if all classes are present
         for class_name in service.CLASS_NAMES:
             assert class_name in stats
             assert "pixel_count" in stats[class_name]
@@ -137,14 +137,14 @@ class TestSegmentationService:
             assert isinstance(stats[class_name]["pixel_count"], int)
             assert isinstance(stats[class_name]["percentage"], float)
 
-        # Vérifier que les pourcentages somment à 100%
+        # check if the percentages sum to 100%
         total_percentage = sum(stats[class_name]["percentage"] for class_name in stats)
         assert (
             abs(total_percentage - 100.0) < 0.1
-        )  # Tolérance plus large pour les erreurs d'arrondi
+        )  # larger tolerance for rounding errors
 
     def test_segment_image(self, service, sample_image_bytes):
-        """Test de la segmentation complète d'une image"""
+        """Test complete image segmentation"""
         with (
             patch("os.path.exists", return_value=True),
             patch(
@@ -161,45 +161,32 @@ class TestSegmentationService:
             assert isinstance(stats, dict)
             assert len(stats) == 8
 
-            # Vérifier que l'image résultante est un PNG valide
+            # check if the resulting image is a valid PNG
             try:
                 img = Image.open(io.BytesIO(result_bytes))
                 assert img.format == "PNG"
             except Exception:
-                pytest.fail("L'image résultante n'est pas un PNG valide")
+                pytest.fail("The resulting image is not a valid PNG")
 
     def test_segment_image_empty_bytes(self, service):
-        """Test de segmentation avec des bytes vides"""
+        """Test segmentation with empty bytes"""
         with pytest.raises(Exception):
             service.segment_image(b"")
 
-    # Test supprimé car problématique avec le chargement lazy du modèle
-    # def test_model_prediction_called(self, service, sample_image_bytes, mock_model):
-    #     """Test que le modèle est appelé correctement"""
-    #     service.segment_image(sample_image_bytes)
-    #
-    #     # Vérifier que predict a été appelé
-    #     mock_model.predict.assert_called_once()
-    #
-    #     # Vérifier la forme des données d'entrée
-    #     call_args = mock_model.predict.call_args[0][0]
-    #     assert call_args.shape == (1, 256, 512, 3)
-    #     assert call_args.dtype == np.float32
-
     def test_palette_consistency(self, service):
-        """Test de la cohérence de la palette de couleurs"""
+        """Test palette consistency"""
         assert len(service.PALETTE) == 8
         assert service.PALETTE.shape == (8, 3)
 
-        # Vérifier que toutes les valeurs sont entre 0 et 255
+        # check if all values are between 0 and 255
         assert service.PALETTE.min() >= 0
         assert service.PALETTE.max() <= 255
 
-        # Vérifier que la palette est de type uint8
+        # check if the palette is of type uint8
         assert service.PALETTE.dtype == np.uint8
 
     def test_class_names_consistency(self, service):
-        """Test de la cohérence des noms de classes"""
+        """Test class names consistency"""
         expected_names = [
             "road",
             "building",
@@ -215,25 +202,25 @@ class TestSegmentationService:
         assert len(service.CLASS_NAMES) == service.N_CLASSES
 
     def test_check_model_exists_success(self, service):
-        """Test quand le fichier modèle existe"""
+        """Test when the model file exists"""
         with patch("os.path.exists", return_value=True):
             # Should not raise an exception
             service._check_model_exists()
 
     def test_check_model_exists_file_not_found(self, service):
-        """Test quand le fichier modèle n'existe pas"""
+        """Test when the model file does not exist"""
         with patch("os.path.exists", return_value=False):
             with pytest.raises(FileNotFoundError, match="Model file not found"):
                 service._check_model_exists()
 
     def test_check_model_exists_file_exists(self, service):
-        """Test quand le fichier modèle existe déjà"""
+        """Test when the model file already exists"""
         with patch("os.path.exists", return_value=True):
             # Should not raise an exception
             service._check_model_exists()
 
     def test_model_property_with_test_mode(self, service):
-        """Test de la propriété model en mode test"""
+        """Test model property in test mode"""
         with (
             patch("os.path.exists", return_value=True),  # File exists
             patch("os.getenv", return_value="true"),  # TEST_MODE=true
@@ -248,7 +235,7 @@ class TestSegmentationService:
             assert hasattr(result, "predict")
 
     def test_model_property_with_test_mode_and_load_failure(self, service):
-        """Test de la propriété model en mode test avec échec de chargement"""
+        """Test model property in test mode with load failure"""
         with (
             patch("os.path.exists", return_value=True),  # File exists
             patch("os.getenv", return_value="true"),  # TEST_MODE=true
@@ -263,7 +250,7 @@ class TestSegmentationService:
             assert hasattr(result, "predict")
 
     def test_model_property_without_test_mode(self, service):
-        """Test de la propriété model sans mode test (exception raised)"""
+        """Test model property without test mode (exception raised)"""
         with (
             patch("os.path.exists", return_value=True),  # File exists
             patch(
@@ -282,7 +269,7 @@ class TestSegmentationService:
                 service.model
 
     def test_model_property_with_model_check(self, service):
-        """Test de la propriété model avec vérification du modèle"""
+        """Test model property with model check"""
         with (
             patch.object(service, "_check_model_exists") as mock_check,
             patch(
@@ -296,11 +283,11 @@ class TestSegmentationService:
             result = service.model
 
             mock_check.assert_called_once()
-            mock_load.assert_called_once_with("model/unet_best.keras", compile=False)
+            mock_load.assert_called_once_with("model/V3_unet_best.keras", compile=False)
             assert result == mock_model
 
     def test_model_property_without_model_check(self, service):
-        """Test de la propriété model sans vérification (fichier existe)"""
+        """Test model property without model check (file exists)"""
         with (
             patch("os.path.exists", return_value=True),
             patch(
@@ -313,5 +300,5 @@ class TestSegmentationService:
 
             result = service.model
 
-            mock_load.assert_called_once_with("model/unet_best.keras", compile=False)
+            mock_load.assert_called_once_with("model/V3_unet_best.keras", compile=False)
             assert result == mock_model

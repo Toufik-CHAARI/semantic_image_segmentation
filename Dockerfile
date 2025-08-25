@@ -56,10 +56,10 @@ ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 ENV AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 ENV AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
 
-# Pull the model using DVC from S3
+# Pull the model using DVC from S3 (optional - will use local if available)
 RUN dvc remote add myremote s3://semantic-segmentation-models-1754924238 --force || true && \
     dvc remote modify myremote region eu-west-3 && \
-    dvc pull model/unet_best.keras.dvc
+    (dvc pull model/V3_unet_best.keras.dvc || echo "Using local model file")
 
 # Clear AWS credentials from environment (security)
 ENV AWS_ACCESS_KEY_ID=
@@ -67,7 +67,7 @@ ENV AWS_SECRET_ACCESS_KEY=
 ENV AWS_DEFAULT_REGION=
 
 # Verify model file is included
-RUN ls -la model/ && echo "Model file size:" && du -h model/unet_best.keras
+RUN ls -la model/ && echo "Model file size:" && du -h model/V3_unet_best.keras
 
 # Expose port
 EXPOSE 8000

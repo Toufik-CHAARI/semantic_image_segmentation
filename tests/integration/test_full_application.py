@@ -11,21 +11,21 @@ from app.main import app
 
 
 class TestFullApplication:
-    """Tests d'intégration pour l'application complète"""
+    """Integration tests for the full application"""
 
     @pytest.fixture
     def client(self):
-        """Client de test FastAPI"""
+        """Test client for FastAPI"""
         return TestClient(app)
 
     @pytest.fixture
     def temp_model_file(self):
-        """Créer un fichier modèle temporaire pour les tests"""
+        """Create a temporary model file for tests"""
         with tempfile.NamedTemporaryFile(suffix=".keras", delete=False) as tmp_file:
-            # Créer un modèle simple pour les tests
+            # create a simple model for tests
             import tensorflow as tf
 
-            # Créer un modèle U-Net simple
+            # create a simple U-Net model
             inputs = tf.keras.layers.Input(shape=(256, 512, 3))
             x = tf.keras.layers.Conv2D(8, (3, 3), activation="relu", padding="same")(
                 inputs
@@ -36,39 +36,39 @@ class TestFullApplication:
             model.save(tmp_file.name)
             yield tmp_file.name
 
-        # Nettoyer après les tests
+        # clean up after tests
         if os.path.exists(tmp_file.name):
             os.unlink(tmp_file.name)
 
     @pytest.fixture
     def sample_image(self):
-        """Créer une image de test réaliste"""
-        # Créer une image qui ressemble à une scène urbaine
+        """Create a realistic test image"""
+        # create an image that resembles an urban scene
         img = Image.new("RGB", (512, 256), color="gray")
 
-        # Ajouter quelques éléments pour simuler une scène urbaine
-        # Route (bas de l'image)
+        # add some elements to simulate an urban scene
+        # road (bottom of the image)
         for x in range(512):
             for y in range(200, 256):
-                img.putpixel((x, y), (128, 64, 128))  # Couleur de la route
+                img.putpixel((x, y), (128, 64, 128))  # road color
 
-        # Bâtiments (haut de l'image)
+        # buildings (top of the image)
         for x in range(512):
             for y in range(0, 100):
-                img.putpixel((x, y), (220, 20, 60))  # Couleur des bâtiments
+                img.putpixel((x, y), (220, 20, 60))  # buildings color
 
-        # Ciel (coin supérieur)
+        # sky (top of the image)
         for x in range(512):
             for y in range(0, 50):
-                img.putpixel((x, y), (70, 130, 180))  # Couleur du ciel
+                img.putpixel((x, y), (70, 130, 180))  # sky color
 
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="PNG")
         return img_bytes.getvalue()
 
     def test_application_startup(self, client):
-        """Test que l'application démarre correctement"""
-        # Vérifier que l'application répond (test API JSON)
+        """Test that the application starts correctly"""
+        # check if the application responds (test API JSON)
         headers = {"Accept": "application/json"}
         response = client.get("/", headers=headers)
         assert response.status_code == 200
@@ -76,20 +76,20 @@ class TestFullApplication:
         assert "message" in data
         assert "version" in data
 
-        # Vérifier que la documentation est accessible
+        # check if the documentation is accessible
         response = client.get("/docs")
         assert response.status_code == 200
 
     def test_health_check_workflow(self, client):
-        """Test du workflow de vérification de santé"""
-        # Test de l'endpoint de santé
+        """Test health check workflow"""
+        # test health endpoint
         response = client.get("/health")
         assert response.status_code == 200
 
         data = response.json()
         assert data["status"] == "healthy"
 
-        # Test de l'endpoint d'information
+        # test info endpoint
         response = client.get("/info")
         assert response.status_code == 200
 
@@ -98,12 +98,12 @@ class TestFullApplication:
         assert "endpoints" in data
 
     def test_segmentation_workflow_with_mock_model(self, client, sample_image):
-        """Test du workflow de segmentation complet avec modèle mocké"""
-        # Mock le service de segmentation
+        """Test segmentation workflow with mock model"""
+        # mock segmentation service
         with patch(
             "app.api.segmentation.segmentation_service.segment_image"
         ) as mock_service:
-            # Simuler une réponse de segmentation
+            # mock segmentation response
             mock_stats = {
                 "road": {"pixel_count": 14336, "percentage": 28.0},
                 "building": {"pixel_count": 10240, "percentage": 20.0},
@@ -115,21 +115,21 @@ class TestFullApplication:
                 "background": {"pixel_count": 1536, "percentage": 3.0},
             }
 
-            # Créer une image segmentée mock
+            # create a mock segmented image
             segmented_img = Image.new("RGB", (512, 256), color="red")
             segmented_bytes = io.BytesIO()
             segmented_img.save(segmented_bytes, format="PNG")
 
             mock_service.return_value = (segmented_bytes.getvalue(), mock_stats)
 
-            # Test de l'endpoint de segmentation
+            # test segment endpoint
             files = {"file": ("test_image.png", sample_image, "image/png")}
             response = client.post("/api/segment", files=files)
 
             assert response.status_code == 200
             assert response.headers["content-type"] == "image/png"
 
-            # Test de l'endpoint avec statistiques
+            # test segment-with-stats endpoint
             response = client.post("/api/segment-with-stats", files=files)
 
             assert response.status_code == 200
@@ -140,8 +140,8 @@ class TestFullApplication:
             assert data["processing_time"] > 0
 
     def test_error_handling_workflow(self, client):
-        """Test du workflow de gestion d'erreurs"""
-        # Test avec un fichier invalide
+        """Test error handling workflow"""
+        # test with an invalid file
         files = {"file": ("test.txt", b"not an image", "text/plain")}
         response = client.post("/api/segment", files=files)
 
@@ -149,13 +149,13 @@ class TestFullApplication:
         data = response.json()
         assert "detail" in data
 
-        # Test sans fichier
+        # test without file
         response = client.post("/api/segment")
         assert response.status_code == 422
 
     def test_api_documentation_workflow(self, client):
-        """Test du workflow de documentation API"""
-        # Vérifier que tous les endpoints de documentation sont accessibles
+        """Test API documentation workflow"""
+        # check if all documentation endpoints are accessible
         endpoints = ["/docs", "/redoc", "/openapi.json"]
 
         for endpoint in endpoints:
@@ -163,8 +163,8 @@ class TestFullApplication:
             assert response.status_code == 200
 
     def test_cors_workflow(self, client):
-        """Test du workflow CORS"""
-        # Test d'une requête OPTIONS (preflight)
+        """Test CORS workflow"""
+        # test OPTIONS (preflight) request
         headers = {
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "POST",
@@ -173,21 +173,21 @@ class TestFullApplication:
 
         response = client.options("/api/segment", headers=headers)
 
-        # Vérifier les headers CORS
+        # check if CORS headers are present
         assert "access-control-allow-origin" in response.headers
         assert "access-control-allow-methods" in response.headers
 
     def test_performance_workflow(self, client, sample_image):
-        """Test du workflow de performance"""
+        """Test performance workflow"""
         import time
 
-        # Mock le service pour mesurer le temps de réponse
+        # mock service to measure response time
         with patch(
             "app.api.segmentation.segmentation_service.segment_image"
         ) as mock_service:
             mock_service.return_value = (sample_image, {})
 
-            # Mesurer le temps de réponse
+            # measure response time
             start_time = time.time()
             files = {"file": ("test_image.png", sample_image, "image/png")}
             response = client.post("/api/segment", files=files)
@@ -195,43 +195,43 @@ class TestFullApplication:
 
             assert response.status_code == 200
 
-            # Vérifier que le temps de réponse est raisonnable (< 5 secondes)
+            # check if response time is reasonable (< 5 seconds)
             response_time = end_time - start_time
             assert response_time < 5.0
 
-            # Vérifier que le header de temps de traitement est présent
+            # check if processing time header is present
             assert "X-Processing-Time" in response.headers
 
     def test_concurrent_requests_workflow(self, client, sample_image):
-        """Test du workflow de requêtes concurrentes"""
+        """Test concurrent requests workflow"""
         import concurrent.futures
 
-        # Mock le service
+        # mock service
         with patch(
             "app.api.segmentation.segmentation_service.segment_image"
         ) as mock_service:
             mock_service.return_value = (sample_image, {})
 
-            # Créer plusieurs requêtes concurrentes
+            # create multiple concurrent requests
             def make_request():
                 files = {"file": ("test_image.png", sample_image, "image/png")}
                 return client.post("/api/segment", files=files)
 
-            # Exécuter 10 requêtes concurrentes
+            # execute 10 concurrent requests
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [executor.submit(make_request) for _ in range(10)]
                 responses = [future.result() for future in futures]
 
-            # Vérifier que toutes les requêtes ont réussi
+            # check if all requests were successful
             for response in responses:
                 assert response.status_code == 200
 
-            # Vérifier que le service a été appelé 10 fois
+            # check if the service was called 10 times
             assert mock_service.call_count == 10
 
     def test_different_image_formats_workflow(self, client):
-        """Test du workflow avec différents formats d'images"""
-        # Créer des images dans différents formats
+        """Test different image formats workflow"""
+        # create images in different formats
         formats = ["PNG", "JPEG", "BMP"]
 
         for format_name in formats:
@@ -256,8 +256,8 @@ class TestFullApplication:
                 assert response.status_code == 200
 
     def test_large_payload_workflow(self, client):
-        """Test du workflow avec des payloads volumineux"""
-        # Créer une image plus grande
+        """Test large payload workflow"""
+        # create a larger image
         large_img = Image.new("RGB", (2048, 2048), color="green")
         large_img_bytes = io.BytesIO()
         large_img.save(large_img_bytes, format="PNG")
@@ -275,8 +275,8 @@ class TestFullApplication:
             assert response.status_code == 200
 
     def test_application_configuration_workflow(self, client):
-        """Test du workflow de configuration de l'application"""
-        # Vérifier que la configuration est correctement appliquée
+        """Test application configuration workflow"""
+        # check if the configuration is applied correctly
         response = client.get("/info")
         data = response.json()
 
@@ -284,8 +284,8 @@ class TestFullApplication:
         assert data["version"] == "1.0.0"
         assert "model_info" in data
 
-        # Vérifier que les endpoints listés correspondent à ceux disponibles
-        # Les endpoints sont listés avec des descriptions, pas juste les chemins
+        # check if the listed endpoints correspond to the ones available
+        # the endpoints are listed with descriptions, not just the paths
         expected_patterns = ["/ -", "/health", "/info", "/segment"]
         for pattern in expected_patterns:
             assert any(
