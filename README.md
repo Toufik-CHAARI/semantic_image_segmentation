@@ -1,3 +1,6 @@
+![Demo](semantic-image_segmentation_api.gif)
+
+
 # 🎯 Semantic Image Segmentation API
 
 A production-ready FastAPI-based semantic image segmentation service using a U-Net model for urban scene understanding. This API provides real-time image segmentation capabilities with comprehensive statistics and multiple deployment options.
